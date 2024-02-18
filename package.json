@@ -1,0 +1,45 @@
+{
+  "name": "nuxthub",
+  "version": "0.0.1",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bin": "./src/index.mjs",
+  "files": [
+    "src/"
+  ],
+  "scripts": {
+    "lint": "eslint --ext .mjs .",
+    "nuxthub": "./src/index.mjs",
+    "prepublishOnly": "pnpm lint",
+    "release": "release-it"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.7.0",
+    "citty": "^0.1.6",
+    "consola": "^3.2.3",
+    "get-port-please": "^3.1.2",
+    "h3": "^1.10.1",
+    "is-docker": "^3.0.0",
+    "listhen": "^1.6.0",
+    "load-json-file": "^7.0.1",
+    "ofetch": "^1.3.3",
+    "rc9": "^2.1.1",
+    "ufo": "^1.4.0",
+    "update-notifier": "^7.0.0"
+  },
+  "devDependencies": {
+    "@nuxt/eslint-config": "^0.2.0",
+    "eslint": "^8.56.0",
+    "release-it": "^17.0.5",
+    "typescript": "^5.3.3"
+  },
+  "release-it": {
+    "git": {
+      "commitMessage": "chore(release): release v${version}"
+    },
+    "github": {
+      "release": true,
+      "releaseName": "v${version}"
+    }
+  }
+}
