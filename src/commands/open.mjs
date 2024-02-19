@@ -10,7 +10,7 @@ import link from './link.mjs'
 export default defineCommand({
   meta: {
     name: 'open',
-    description: 'Open in your default browser the NuxtHub project linked to the current directory.',
+    description: 'Open in browser the project URL linked to the current directory.',
   },
   async setup() {
     let user = await fetchUser()

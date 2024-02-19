@@ -11,7 +11,7 @@ import open from 'open'
 export default defineCommand({
   meta: {
     name: 'login',
-    description: 'Authenticate with NuxtHub',
+    description: 'Authenticate with NuxtHub.',
   },
   async setup() {
     if (isHeadless()) {
