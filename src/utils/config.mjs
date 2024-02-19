@@ -1,5 +1,5 @@
 import isDocker from 'is-docker'
-import { updateUser, readUser, writeUser, read } from 'rc9'
+import { updateUser, readUser, writeUser } from 'rc9'
 import { homedir } from 'os'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
