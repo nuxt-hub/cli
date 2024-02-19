@@ -47,17 +47,22 @@ export async function selectTeam() {
 
 export async function selectProject(team) {
   const projects = await $api(`/teams/${team.slug}/projects`)
-  const projectId = await select({
-    message: 'Select a project',
-    options: [
-      { value: 'new', label: 'Create a new project' },
-      ...projects.map((project) => ({
-        value: project.id,
-        label: project.slug
-      }))
-    ]
-  })
-  if (isCancel(projectId)) return null
+  let projectId
+  if (projects.length) {
+    projectId = await select({
+      message: 'Select a project',
+      options: [
+        { value: 'new', label: 'Create a new project' },
+        ...projects.map((project) => ({
+          value: project.id,
+          label: project.slug
+        }))
+      ]
+    })
+    if (isCancel(projectId)) return null
+  } else {
+    projectId = 'new'
+  }
 
   let project
   if (projectId === 'new') {
@@ -69,6 +74,14 @@ export async function selectProject(team) {
     project = await $api(`/teams/${team.slug}/projects`, {
       method: 'POST',
       body: { name: projectName }
+    }).catch((err) => {
+      if (err.response?._data?.message?.includes('Cloudflare account')) {
+        consola.warn('You need to link your Cloudflare account to create a project.')
+        consola.info('Please configure it in your team settings:')
+        consola.info(`\`${joinURL(NUXT_HUB_URL, team.slug, '/settings/cloudflare')}\`\n`)
+        process.exit(1)
+      }
+      throw err
     })
     consola.success(`Project \`${project.slug}\` created`)
   } else {

@@ -2,7 +2,7 @@ import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import { isCancel, confirm } from '@clack/prompts'
 import { defineCommand, runCommand } from 'citty'
-import { fetchUser, selectTeam, selectProject, projectPath, fetchProject } from '../utils/index.mjs'
+import { fetchUser, selectTeam, selectProject, projectPath, fetchProject, linkProject } from '../utils/index.mjs'
 import login from './login.mjs'
 
 export default defineCommand({
@@ -32,6 +32,7 @@ export default defineCommand({
 
       project = await selectProject(team)
       if (!project) return consola.log('Cancelled.')
+      linkProject(project)
     }
 
     consola.info(`Deploying \`${project.slug}\` to NuxtHub...`)
