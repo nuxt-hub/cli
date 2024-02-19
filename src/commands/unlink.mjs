@@ -2,7 +2,7 @@ import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import { isCancel, confirm } from '@clack/prompts'
 import { defineCommand, runCommand } from 'citty'
-import { fetchUser, projectPath, writeProjectConfig, loadProjectConfig, fetchProject } from '../utils/index.mjs'
+import { fetchUser, projectPath, fetchProject, unlinkProject } from '../utils/index.mjs'
 import login from './login.mjs'
 
 export default defineCommand({
@@ -30,9 +30,7 @@ export default defineCommand({
       return consola.log('Cancelled.')
     }
 
-    const config = loadProjectConfig()
-    delete config.hub.projectId
-    writeProjectConfig(config)
+    unlinkProject()
 
     consola.success(`Project \`${project.slug}\` unlinked.`)
   },

@@ -25,7 +25,7 @@ export default defineCommand({
     const app = createApp()
     let handled = false
     // Get machine name
-    const host = hostname().replace(/-/g, ' ').replace('.local', '')
+    const host = hostname().replace(/-/g, ' ').replace('.local', '').replace('.home', '')
     const tokenName = `NuxtHub CLI on ${host}`
     // eslint-disable-next-line no-async-promise-executor
     await new Promise(async (resolve, reject) => {
@@ -41,7 +41,10 @@ export default defineCommand({
               code,
               name: tokenName
             }
-          }).catch(() => ({ token: null }))
+          }).catch((err) => {
+            consola.error(err.message)
+            return { token: null }
+          })
           const user = await $api('/user', {
             headers: {
               Authorization: `Bearer ${token}`

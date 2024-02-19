@@ -2,7 +2,7 @@ import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import { isCancel, confirm } from '@clack/prompts'
 import { defineCommand, runCommand } from 'citty'
-import { fetchUser, selectTeam, selectProject, projectPath, updateProjectConfig, fetchProject } from '../utils/index.mjs'
+import { fetchUser, selectTeam, selectProject, projectPath, linkProject, fetchProject } from '../utils/index.mjs'
 import login from './login.mjs'
 
 export default defineCommand({
@@ -43,11 +43,7 @@ export default defineCommand({
     project = await selectProject(team)
     if (!project) return consola.log('Cancelled.')
 
-    updateProjectConfig({
-      hub: {
-        projectId: project.id
-      }
-    })
+    linkProject(project)
 
     consola.success(`Project \`${project.slug}\` linked.`)
   },

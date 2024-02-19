@@ -2,7 +2,7 @@ import { consola } from 'consola'
 import { isCancel, select, text } from '@clack/prompts'
 import { joinURL } from 'ufo'
 import { ofetch } from 'ofetch'
-import { NUXT_HUB_URL, loadUserConfig, loadProjectConfig } from './config.mjs'
+import { NUXT_HUB_URL, loadUserConfig } from './config.mjs'
 
 export const $api = ofetch.create({
   baseURL: joinURL(NUXT_HUB_URL, '/api'),
@@ -79,9 +79,8 @@ export async function selectProject(team) {
 }
 
 export async function fetchProject() {
-  const projectConfig = loadProjectConfig()
-  if (projectConfig.hub?.projectId) {
-    return $api(`/projects/${projectConfig.hub.projectId}`).catch(() => null)
+  if (process.env.NUXT_HUB_PROJECT_KEY) {
+    return $api(`/projects/${process.env.NUXT_HUB_PROJECT_KEY}`).catch(() => null)
   }
   return null
 }
