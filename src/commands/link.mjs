@@ -43,7 +43,7 @@ export default defineCommand({
     project = await selectProject(team)
     if (!project) return consola.log('Cancelled.')
 
-    linkProject(project)
+    await linkProject(project)
 
     consola.success(`Project \`${project.slug}\` linked.`)
   },

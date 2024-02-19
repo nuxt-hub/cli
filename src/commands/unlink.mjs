@@ -30,7 +30,7 @@ export default defineCommand({
       return consola.log('Cancelled.')
     }
 
-    unlinkProject()
+    await unlinkProject()
 
     consola.success(`Project \`${project.slug}\` unlinked.`)
   },

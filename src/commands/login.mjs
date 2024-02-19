@@ -6,6 +6,7 @@ import { createApp, eventHandler, toNodeListener, getQuery, sendRedirect } from 
 import { getRandomPort } from 'get-port-please'
 import { listen } from 'listhen'
 import { withQuery, joinURL } from 'ufo'
+import open from 'open'
 
 export default defineCommand({
   meta: {
@@ -67,11 +68,11 @@ export default defineCommand({
         showURL: false,
         port: randomPort
       })
-      consola.box(
-        'Please visit the following URL in your web browser:\n\n'+
-        '`'+withQuery(joinURL(NUXT_HUB_URL, '/api/cli/authorize'), { redirect: listener.url })+'`'
-      )
+      const authUrl = withQuery(joinURL(NUXT_HUB_URL, '/api/cli/authorize'), { redirect: listener.url })
+      consola.info('Please visit the following URL in your web browser:')
+      consola.info(`\`${authUrl}\``)
       consola.info('Waiting for authentication to be completed...')
+      open(authUrl)
     })
     // Close server after 1s to make sure we have time to handle the request
     await new Promise((resolve) => setTimeout(resolve, 1000))

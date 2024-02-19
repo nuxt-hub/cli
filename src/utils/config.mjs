@@ -5,7 +5,9 @@ import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { config } from 'dotenv'
 
+// Load project .env
 config()
+
 export const INITIAL_CONFIG = loadUserConfig()
 export const NUXT_HUB_URL = process.env.NUXT_HUB_URL || INITIAL_CONFIG.hub?.url || 'https://hub.nuxt.com'
 
@@ -35,6 +37,7 @@ export async function linkProject(project) {
   } else {
     env += `${env.length ? '\n' : ''}NUXT_HUB_PROJECT_KEY=${project.key}`
   }
+  process.env.NUXT_HUB_PROJECT_KEY = project.key
   await writeFile(path, env, 'utf-8')
 }
 
