@@ -1,7 +1,8 @@
+import { hostname } from 'os'
 import { consola } from 'consola'
 import { defineCommand } from 'citty'
 import { isHeadless, fetchUser, updateUserConfig, $api, NUXT_HUB_URL } from '../utils/index.mjs'
-import { createApp, eventHandler, toNodeListener, getQuery } from 'h3'
+import { createApp, eventHandler, toNodeListener, getQuery, sendRedirect } from 'h3'
 import { getRandomPort } from 'get-port-please'
 import { listen } from 'listhen'
 import { withQuery, joinURL } from 'ufo'
@@ -23,14 +24,24 @@ export default defineCommand({
     let listener
     const app = createApp()
     let handled = false
+    // Get machine name
+    const host = hostname().replace(/-/g, ' ').replace('.local', '')
+    const tokenName = `NuxtHub CLI on ${host}`
     // eslint-disable-next-line no-async-promise-executor
     await new Promise(async (resolve, reject) => {
       app.use('/', eventHandler(async (event) => {
         if (handled)  return
         handled = true
-        const token = getQuery(event).token
+        const code = getQuery(event).code
 
-        if (token) {
+        if (code) {
+          const { token } = await $api('/cli/verify', {
+            method: 'POST',
+            body: {
+              code,
+              name: tokenName
+            }
+          }).catch(() => ({ token: null }))
           const user = await $api('/user', {
             headers: {
               Authorization: `Bearer ${token}`
@@ -41,14 +52,12 @@ export default defineCommand({
             consola.success('Authenticated successfully!')
 
             resolve()
-
-            // TODO: redirect to success CLI page: https://hub.nuxt.com/cli/login-success?name=${user.name}
-            return 'Authenticated successfully! You can close this window now.'
+            return sendRedirect(event, joinURL(NUXT_HUB_URL, '/cli/status?success'))
           }
         }
         consola.error('Authentication error, please try again.')
         reject()
-        return 'Authentication error, missing token.'
+        return sendRedirect(event, joinURL(NUXT_HUB_URL, '/cli/status?error'))
       }))
       const randomPort = await getRandomPort()
       listener = await listen(toNodeListener(app), {
