@@ -14,13 +14,14 @@ export default defineCommand({
       return
     }
 
+    await $api('/user/token', {
+      method: 'DELETE'
+    }).catch(() => {})
+
     const config = loadUserConfig()
     delete config.hub.userToken
     writeUserConfig(config)
 
-    await $api('/user/token', {
-      method: 'DELETE'
-    }).catch(() => {})
     consola.info('You have been logged out.')
   },
 })
