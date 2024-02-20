@@ -2,6 +2,9 @@
   "name": "nuxthub",
   "version": "0.1.4",
   "license": "Apache-2.0",
+  "description": "Interface with the NuxtHub platform from the command line.",
+  "keywords": ["nuxt", "nuxthub", "cli"],
+  "repo": "nuxt-hub/cli",
   "type": "module",
   "bin": "./src/index.mjs",
   "files": [
