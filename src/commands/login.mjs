@@ -29,7 +29,7 @@ export default defineCommand({
     const host = hostname().replace(/-/g, ' ').replace('.local', '').replace('.home', '')
     const tokenName = `NuxtHub CLI on ${host}`
     // eslint-disable-next-line no-async-promise-executor
-    await new Promise(async (resolve, reject) => {
+    await new Promise(async (resolve) => {
       app.use('/', eventHandler(async (event) => {
         if (handled)  return
         handled = true
@@ -43,14 +43,17 @@ export default defineCommand({
               name: tokenName
             }
           }).catch((err) => {
-            consola.error(err.message)
+            console.error('Failed to verify session', err.message)
             return { token: null }
           })
           const user = await $api('/user', {
             headers: {
               Authorization: `Bearer ${token}`
             }
-          }).catch(() => null)
+          }).catch((err) => {
+            console.error('Failed to fetch user', err.message)
+            return null
+          })
           if (user?.name) {
             updateUserConfig({ hub: { userToken: token } })
             consola.success('Authenticated successfully!')
@@ -60,7 +63,7 @@ export default defineCommand({
           }
         }
         consola.error('Authentication error, please try again.')
-        reject()
+        resolve()
         return sendRedirect(event, joinURL(NUXT_HUB_URL, '/cli/status?error'))
       }))
       const randomPort = await getRandomPort()
