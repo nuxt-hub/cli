@@ -18,7 +18,14 @@ export default defineCommand({
     name: 'deploy',
     description: 'Deploy your project to NuxtHub.',
   },
-  async setup() {
+  args: {
+    build: {
+      type: 'boolean',
+      description: 'Build the project before deploying.',
+      default: true
+    },
+  },
+  async setup({ args }) {
     let user = await fetchUser()
     if (!user) {
       consola.info('Please login to deploy your project.')
@@ -45,15 +52,17 @@ export default defineCommand({
       linkedProject = await fetchProject()
     }
 
-    consola.info('Building your project...')
-    await execa('./node_modules/.bin/nuxi', ['build', '--preset=cloudflare-pages'], { stdio: 'inherit' })
-      .catch((err) => {
-        if (err.code === 'ENOENT') {
-          consola.error('`nuxt` is not installed, please make sure that you are inside a Nuxt project.')
-          process.exit(1)
-        }
-        throw err
-      })
+    if (args.build) {
+      consola.info('Building your project...')
+      await execa('./node_modules/.bin/nuxi', ['build', '--preset=cloudflare-pages'], { stdio: 'inherit' })
+        .catch((err) => {
+          if (err.code === 'ENOENT') {
+            consola.error('`nuxt` is not installed, please make sure that you are inside a Nuxt project.')
+            process.exit(1)
+          }
+          throw err
+        })
+    }
 
     const distDir = join(process.cwd(), 'dist')
     if (!existsSync(distDir)) {
