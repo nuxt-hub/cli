@@ -71,6 +71,7 @@ export async function selectProject(team) {
       placeholder: 'my-nuxt-project'
     })
     if (!projectName || isCancel(projectName)) return null
+    consola.start(`Creating project \`${projectName}\` on NuxtHub and Cloudflare...`)
     project = await $api(`/teams/${team.slug}/projects`, {
       method: 'POST',
       body: { name: projectName }

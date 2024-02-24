@@ -10,6 +10,7 @@ config()
 
 export const INITIAL_CONFIG = loadUserConfig()
 export const NUXT_HUB_URL = process.env.NUXT_HUB_URL || INITIAL_CONFIG.hub?.url || 'https://hub.nuxt.com'
+export const MAX_ASSET_SIZE = 25 * 1024 * 1024
 
 export function loadUserConfig () {
   return readUser('.nuxtrc')
@@ -26,7 +27,11 @@ export function isHeadless() {
 }
 
 export function projectPath() {
-  return process.cwd().replace(homedir(), '~')
+  return withTilde(process.cwd())
+}
+
+export function withTilde(path) {
+  return path.replace(homedir(), '~')
 }
 
 export async function linkProject(project) {
@@ -35,7 +40,7 @@ export async function linkProject(project) {
   if (env.includes('NUXT_HUB_PROJECT_KEY')) {
     env = env.replace(/NUXT_HUB_PROJECT_KEY=[^\n]+/, `NUXT_HUB_PROJECT_KEY=${project.key}`)
   } else {
-    env += `${env.length ? '\n' : ''}NUXT_HUB_PROJECT_KEY=${project.key}`
+    env += `${env.length && env[env.length - 1] !== '\n' ? '\n' : ''}NUXT_HUB_PROJECT_KEY=${project.key}`
   }
   process.env.NUXT_HUB_PROJECT_KEY = project.key
   await writeFile(path, env, 'utf-8')
