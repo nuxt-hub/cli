@@ -66,11 +66,13 @@ export async function selectProject(team) {
 
   let project
   if (projectId === 'new') {
-    const projectName = await text({
+    const defaultProjectName = process.cwd().split('/').pop()
+    let projectName = await text({
       message: 'Project name',
-      placeholder: 'my-nuxt-project'
+      placeholder: defaultProjectName
     })
-    if (!projectName || isCancel(projectName)) return null
+    if (isCancel(projectName)) return null
+    projectName = projectName || defaultProjectName
     consola.start(`Creating project \`${projectName}\` on NuxtHub and Cloudflare...`)
     project = await $api(`/teams/${team.slug}/projects`, {
       method: 'POST',
