@@ -70,7 +70,7 @@ export default defineCommand({
       const fileContentBase64 = data.toString('base64')
 
       if (data.size > MAX_ASSET_SIZE) {
-        console.error(`NuxtHub deploy only supports files up to ${prettyBytes(MAX_ASSET_SIZE, { binary: true })} in size\n${withTilde(path)} is ${prettyBytes(data.size, { binary: true })} in size`)
+        console.error(`NuxtHub deploy only supports files up to ${prettyBytes(MAX_ASSET_SIZE, { binary: true })} in size\n${withTilde(filepath)} is ${prettyBytes(data.size, { binary: true })} in size`)
         process.exit(1)
       }
 
