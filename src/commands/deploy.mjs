@@ -51,9 +51,10 @@ export default defineCommand({
       // Use correct project format
       linkedProject = await fetchProject()
     }
+    consola.info(`Preparing to deploy \`${linkedProject.slug}\` on \`${linkedProject.teamSlug}\` team.`)
 
     if (args.build) {
-      consola.info('Building your project...')
+      consola.start('Building the Nuxt project...')
       await execa('./node_modules/.bin/nuxi', ['build', '--preset=cloudflare-pages'], { stdio: 'inherit' })
         .catch((err) => {
           if (err.code === 'ENOENT') {
