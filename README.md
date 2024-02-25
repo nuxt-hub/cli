@@ -1,6 +1,6 @@
 # NuxtHub CLI
 
-Interface with the [NuxtHub](https://hub.nuxt.com) platform from the command line.
+Interface with the [NuxtHub Console](https://console.hub.nuxt.com) platform from the command line.
 
 ## Installation
 
