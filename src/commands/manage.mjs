@@ -2,7 +2,8 @@ import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import { isCancel, confirm } from '@clack/prompts'
 import { defineCommand, runCommand } from 'citty'
-import { fetchUser, projectPath, fetchProject } from '../utils/index.mjs'
+import { fetchUser, projectPath, fetchProject, NUXT_HUB_URL } from '../utils/index.mjs'
+import { joinURL } from 'ufo'
 import open from 'open'
 import login from './login.mjs'
 import link from './link.mjs'
@@ -10,7 +11,7 @@ import link from './link.mjs'
 export default defineCommand({
   meta: {
     name: 'open',
-    description: 'Open in browser the project\'s URL linked to the current directory.',
+    description: 'Open in browser the NuxtHub URL for a linked project.',
   },
   async setup() {
     let user = await fetchUser()
@@ -37,13 +38,9 @@ export default defineCommand({
       }
     }
 
-    if (!project.url) {
-      consola.info(`Project \`${project.slug}\` does not have a URL, please run \`nuxthub deploy\`.`)
-      return
-    }
+    const url = joinURL(NUXT_HUB_URL, project.teamSlug, project.slug)
+    open(url)
 
-    open(project.url)
-
-    consola.success(`Project \`${project.url}\` opened in the browser.`)
+    consola.success(`\`${url}\` opened in the browser.`)
   },
 })

@@ -13,6 +13,7 @@ import logout from './commands/logout.mjs'
 import whoami from './commands/whoami.mjs'
 import deploy from './commands/deploy.mjs'
 import open from './commands/open.mjs'
+import manage from './commands/manage.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pkg = loadJsonFileSync(resolve(__dirname, '../package.json'))
@@ -34,6 +35,7 @@ const main = defineCommand({
     link,
     unlink,
     open,
+    manage,
     login,
     logout,
     whoami
