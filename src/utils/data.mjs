@@ -73,10 +73,25 @@ export async function selectProject(team) {
     })
     if (isCancel(projectName)) return null
     projectName = projectName || defaultProjectName
+    const projectLocation = await select({
+      message: 'Resources leader location (for D1 & R2)',
+      initialValue: 'weur',
+      options: [
+        { label: 'Western Europe', value: 'weur' },
+        { label: 'Eastern Europe', value: 'eeur' },
+        { label: 'Western North America', value: 'wnam' },
+        { label: 'Eastern North America', value: 'enam' },
+        { label: 'Asia Pacific', value: 'apac' }
+      ]
+    })
+    if (isCancel(projectLocation)) return null
     consola.start(`Creating project \`${projectName}\` on NuxtHub and Cloudflare...`)
     project = await $api(`/teams/${team.slug}/projects`, {
       method: 'POST',
-      body: { name: projectName }
+      body: {
+        name: projectName,
+        location: projectLocation
+      }
     }).catch((err) => {
       if (err.response?._data?.message?.includes('Cloudflare account')) {
         consola.warn('You need to link your Cloudflare account to create a project.')
