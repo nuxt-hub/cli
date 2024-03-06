@@ -6,6 +6,7 @@ import updateNotifier from 'update-notifier'
 import { loadJsonFileSync } from 'load-json-file'
 import consola from 'consola'
 import { colors } from 'consola/utils'
+import init from './commands/init.mjs'
 import link from './commands/link.mjs'
 import unlink from './commands/unlink.mjs'
 import login from './commands/login.mjs'
@@ -31,6 +32,7 @@ const main = defineCommand({
     }
   },
   subCommands: {
+    init,
     deploy,
     link,
     unlink,
