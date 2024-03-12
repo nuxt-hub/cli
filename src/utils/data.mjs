@@ -2,6 +2,7 @@ import { consola } from 'consola'
 import { isCancel, select, text } from '@clack/prompts'
 import { joinURL } from 'ufo'
 import { ofetch } from 'ofetch'
+import { gitInfo } from './git.mjs'
 import { NUXT_HUB_URL, loadUserConfig } from './config.mjs'
 
 export const $api = ofetch.create({
@@ -74,7 +75,7 @@ export async function selectProject(team) {
     if (isCancel(projectName)) return null
     projectName = projectName || defaultProjectName
     const projectLocation = await select({
-      message: 'Resources leader location (for D1 & R2)',
+      message: 'Select a region for the storage',
       initialValue: 'weur',
       options: [
         { label: 'Western Europe', value: 'weur' },
@@ -85,12 +86,20 @@ export async function selectProject(team) {
       ]
     })
     if (isCancel(projectLocation)) return null
-    consola.start(`Creating project \`${projectName}\` on NuxtHub and Cloudflare...`)
+    const git = gitInfo()
+    const defaultProductionBranch = git.branch || 'main'
+    const productionBranch = await text({
+      message: 'Production branch (git)',
+      placeholder: defaultProductionBranch
+    })
+    if (isCancel(productionBranch)) return null
+    consola.start(`Creating project \`${projectName}\` on NuxtHub...`)
     project = await $api(`/teams/${team.slug}/projects`, {
       method: 'POST',
       body: {
         name: projectName,
-        location: projectLocation
+        location: projectLocation,
+        productionBranch: productionBranch || 'main'
       }
     }).catch((err) => {
       if (err.response?._data?.message?.includes('Cloudflare account')) {
