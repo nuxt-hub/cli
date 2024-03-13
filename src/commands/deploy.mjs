@@ -27,7 +27,7 @@ export default defineCommand({
     production: {
       type: 'boolean',
       description: 'Force the current deployment as production.',
-      default: true
+      default: false
     }
   },
   async setup({ args }) {
@@ -100,11 +100,12 @@ export default defineCommand({
       }
     }))
     // TODO: make a tar with nanotar by the amazing Pooya Parsa (@pi0)
-    consola.start(`Deploying \`${linkedProject.slug}\` to NuxtHub...`)
     const git = gitInfo()
     if (args.production) {
-      git.branch = 'main'
+      git.branch = linkedProject.productionBranch || 'main'
     }
+    const deployEnv = git.branch === linkedProject.productionBranch ? 'production' : 'preview'
+    consola.start(`Deploying \`${deployEnv}\` of \`${linkedProject.slug}\`...`)
     const deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/deploy`, {
       method: 'POST',
       body: {
