@@ -36,6 +36,36 @@ COMMANDS
 Use nuxthub <command> --help for more information about a command.
 ```
 
+## Deployment
+
+To deploy your project to NuxtHub, you can use the `nuxthub deploy` command. This will build your project and deploy it to your Cloudflare account with zero-configuration.
+
+```bash
+# Deploy to production or preview based on your current branch
+nuxthub deploy
+
+# Deploy to production
+nuxthub deploy --production
+
+# Deploy to preview
+nuxthub deploy --preview
+```
+
+## Open in Browser
+
+To open your project in the browser, you can use the `nuxthub open` command. This will open the URL of your project in the default browser.
+
+```bash
+# Open the production or preview deployment based on your current branch
+nuxthub open
+
+# Open the production deployment
+nuxthub open --production
+
+# Open the latest preview deployment
+nuxthub open --preview
+```
+
 ## License
 
 [Apache 2.0](./LICENSE)

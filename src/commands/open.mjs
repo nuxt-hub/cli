@@ -2,7 +2,7 @@ import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import { isCancel, confirm } from '@clack/prompts'
 import { defineCommand, runCommand } from 'citty'
-import { fetchUser, projectPath, fetchProject } from '../utils/index.mjs'
+import { fetchUser, projectPath, fetchProject, gitInfo } from '../utils/index.mjs'
 import open from 'open'
 import login from './login.mjs'
 import link from './link.mjs'
@@ -12,7 +12,19 @@ export default defineCommand({
     name: 'open',
     description: 'Open in browser the project\'s URL linked to the current directory.',
   },
-  async setup() {
+  args: {
+    production: {
+      type: 'boolean',
+      description: 'Open the production deployment.',
+      default: false
+    },
+    preview: {
+      type: 'boolean',
+      description: 'Open the latest preview deployment.',
+      default: false
+    }
+  },
+  async setup({ args }) {
     let user = await fetchUser()
     if (!user) {
       consola.info('Please login to open a project in your browser.')
@@ -36,14 +48,24 @@ export default defineCommand({
         return console.log('project is null')
       }
     }
+    // Get the environment based on branch
+    let env = 'production'
+    if (args.preview) {
+      env = 'preview'
+    } else if (!args.production && !args.preview) {
+      const git = gitInfo()
+      // Guess the env based on the branch
+      env = (git.branch === project.productionBranch) ? 'production' : 'preview'
+    }
+    const url = (env === 'production' ? project.url : project.previewUrl)
 
-    if (!project.url) {
-      consola.info(`Project \`${project.slug}\` does not have a URL, please run \`nuxthub deploy\`.`)
+    if (!url) {
+      consola.info(`Project \`${project.slug}\` does not have a \`${env}\` URL, please run \`nuxthub deploy --${env}\`.`)
       return
     }
 
-    open(project.url)
+    open(url)
 
-    consola.success(`Project \`${project.url}\` opened in the browser.`)
+    consola.success(`Project \`${url}\` opened in the browser.`)
   },
 })
