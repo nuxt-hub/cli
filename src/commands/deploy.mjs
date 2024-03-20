@@ -68,6 +68,8 @@ export default defineCommand({
       // Set branch as "preview", except if someone decided to set the production branch as "preview"
       git.branch = linkedProject.productionBranch === 'preview' ? 'force_preview' : 'preview'
     }
+    // Default to main branch
+    git.branch = git.branch || 'main'
     const deployEnv = git.branch === linkedProject.productionBranch ? 'production' : 'preview'
     consola.success(`Connected to \`${linkedProject.teamSlug}\` team.`)
     consola.info(`Preparing to deploy \`${linkedProject.slug}\` to \`${deployEnv}\`.`)
