@@ -10,7 +10,7 @@ import { execa } from 'execa'
 import { existsSync } from 'fs'
 import mime from 'mime'
 import prettyBytes from 'pretty-bytes'
-import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, MAX_ASSET_SIZE } from '../utils/index.mjs'
+import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, getPackageJson, MAX_ASSET_SIZE } from '../utils/index.mjs'
 import login from './login.mjs'
 
 export default defineCommand({
@@ -75,15 +75,30 @@ export default defineCommand({
     consola.info(`Preparing to deploy \`${linkedProject.slug}\` to \`${deployEnv}\`.`)
 
     if (args.build) {
-      consola.start('Building the Nuxt project...')
-      await execa('./node_modules/.bin/nuxi', ['build', '--preset=cloudflare-pages'], { stdio: 'inherit' })
-        .catch((err) => {
-          if (err.code === 'ENOENT') {
-            consola.error('`nuxt` is not installed, please make sure that you are inside a Nuxt project.')
-            process.exit(1)
-          }
-          throw err
-        })
+      const pkg = await getPackageJson()
+      const deps = Object.assign({}, pkg.dependencies, pkg.devDependencies)
+      if (deps.nuxt) {
+        consola.start('Building the Nuxt project...')
+        await execa('./node_modules/.bin/nuxi', ['build', '--preset=cloudflare-pages'], { stdio: 'inherit' })
+          .catch((err) => {
+            if (err.code === 'ENOENT') {
+              consola.error('`nuxt` is not installed, please make sure that you are inside a Nuxt project.')
+              process.exit(1)
+            }
+            throw err
+          })
+      } else if (deps.nitropack) {
+        consola.start('Building the Nitro project...')
+        process.env.NITRO_PRESET = 'cloudflare-pages'
+        await execa('./node_modules/.bin/nitropack', ['build'], { stdio: 'inherit' })
+          .catch((err) => {
+            if (err.code === 'ENOENT') {
+              consola.error('`nitropack` is not installed, please make sure that you are inside a NitroPack project.')
+              process.exit(1)
+            }
+            throw err
+          })
+      }
     }
 
     const distDir = join(process.cwd(), 'dist')
