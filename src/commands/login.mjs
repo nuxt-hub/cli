@@ -26,7 +26,7 @@ export default defineCommand({
     const app = createApp()
     let handled = false
     // Get machine name
-    const host = hostname().replace(/-/g, ' ').replace('.local', '').replace('.home', '')
+    const host = hostname().replace(/-/g, ' ').replace('.local', '').replace('.home', '').toLowerCase()
     const tokenName = `NuxtHub CLI on ${host}`
     // eslint-disable-next-line no-async-promise-executor
     await new Promise(async (resolve) => {
