@@ -9,7 +9,7 @@ import { config } from 'dotenv'
 config()
 
 export const INITIAL_CONFIG = loadUserConfig()
-export const NUXT_HUB_URL = process.env.NUXT_HUB_URL || INITIAL_CONFIG.hub?.url || 'https://console.hub.nuxt.com'
+export const NUXT_HUB_URL = process.env.NUXT_HUB_URL || INITIAL_CONFIG.hub?.url || 'https://admin.hub.nuxt.com'
 export const MAX_ASSET_SIZE = 25 * 1024 * 1024
 
 export function loadUserConfig () {
