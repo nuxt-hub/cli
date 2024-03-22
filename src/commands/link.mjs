@@ -19,7 +19,7 @@ export default defineCommand({
     }
     let project = await fetchProject()
     if (project) {
-      consola.warn(`This directory is already linked to the \`${project.slug}\` project.`)
+      consola.warn(`This directory is already linked to the ${colors.blue(project.slug)} project.`)
 
       const linkAnyway = await confirm({
         message: `Do you want to link ${colors.blue(projectPath())} to another project?`,
@@ -45,6 +45,6 @@ export default defineCommand({
 
     await linkProject(project)
 
-    consola.success(`Project \`${project.slug}\` linked.`)
+    consola.success(`Project ${colors.blue(project.slug)} linked.`)
   },
 })

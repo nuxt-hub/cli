@@ -32,6 +32,6 @@ export default defineCommand({
 
     await unlinkProject()
 
-    consola.success(`Project \`${project.slug}\` unlinked.`)
+    consola.success(`Project ${colors.blue(project.slug)} unlinked.`)
   },
 })

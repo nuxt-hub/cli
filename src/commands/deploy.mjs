@@ -1,3 +1,4 @@
+import ora from 'ora'
 import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import { isCancel, confirm } from '@clack/prompts'
@@ -10,7 +11,7 @@ import { execa } from 'execa'
 import { existsSync } from 'fs'
 import mime from 'mime'
 import prettyBytes from 'pretty-bytes'
-import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, getPackageJson, MAX_ASSET_SIZE } from '../utils/index.mjs'
+import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, getPackageJson, pollDns, pollHttp, MAX_ASSET_SIZE } from '../utils/index.mjs'
 import login from './login.mjs'
 
 export default defineCommand({
@@ -71,8 +72,8 @@ export default defineCommand({
     // Default to main branch
     git.branch = git.branch || 'main'
     const deployEnv = git.branch === linkedProject.productionBranch ? 'production' : 'preview'
-    consola.success(`Connected to \`${linkedProject.teamSlug}\` team.`)
-    consola.info(`Preparing to deploy \`${linkedProject.slug}\` to \`${deployEnv}\`.`)
+    const deployEnvColored = deployEnv === 'production' ? colors.green(deployEnv) : colors.yellow(deployEnv)
+    consola.success(`Connected to ${colors.blue(linkedProject.teamSlug)} team.`)
 
     if (args.build) {
       const pkg = await getPackageJson()
@@ -103,7 +104,7 @@ export default defineCommand({
 
     const distDir = join(process.cwd(), 'dist')
     if (!existsSync(distDir)) {
-      consola.error(`\`${withTilde(distDir)}\` directory not found, please make sure that you have built your project.`)
+      consola.error(`${colors.cyan(withTilde(distDir))} directory not found, please make sure that you have built your project.`)
       process.exit(1)
     }
     const srcStorage = createStorage({
@@ -132,7 +133,7 @@ export default defineCommand({
     }))
     // TODO: make a tar with nanotar by the amazing Pooya Parsa (@pi0)
 
-    consola.start(`Deploying \`${linkedProject.slug}\` to \`${deployEnv}\`...`)
+    const spinner = ora(`Deploying ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`).start()
     const deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/deploy`, {
       method: 'POST',
       body: {
@@ -140,6 +141,12 @@ export default defineCommand({
         files
       }
     })
-    consola.success(`Project deployed on \`${deployment.url}\``)
+    spinner.stop()
+    // Check DNS & ready url for first deployment
+    if (deployment.isFirstDeploy) {
+      await pollDns(deployment.url)
+    }
+    await pollHttp(deployment.primaryUrl || deployment.url)
+    process.exit(0)
   },
 })

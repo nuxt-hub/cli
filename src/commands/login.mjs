@@ -1,5 +1,6 @@
 import { hostname } from 'os'
 import { consola } from 'consola'
+import { colors } from 'consola/utils'
 import { defineCommand } from 'citty'
 import { isHeadless, fetchUser, updateUserConfig, $api, NUXT_HUB_URL } from '../utils/index.mjs'
 import { createApp, eventHandler, toNodeListener, getQuery, sendRedirect } from 'h3'
@@ -19,7 +20,7 @@ export default defineCommand({
     }
     const user = await fetchUser()
     if (user) {
-      return consola.info(`Already logged in as \`${user.name}\``)
+      return consola.info(`Already logged in as ${colors.blue(user.name)}`)
     }
     // Create server for OAuth flow
     let listener

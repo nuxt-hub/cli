@@ -57,10 +57,11 @@ export default defineCommand({
       // Guess the env based on the branch
       env = (git.branch === project.productionBranch) ? 'production' : 'preview'
     }
+    const envColored = env === 'production' ? colors.green(env) : colors.yellow(env)
     const url = (env === 'production' ? project.url : project.previewUrl)
 
     if (!url) {
-      consola.info(`Project \`${project.slug}\` does not have a \`${env}\` URL, please run \`nuxthub deploy --${env}\`.`)
+      consola.info(`Project ${colors.blue(project.slug)} does not have a ${envColored} URL, please run \`nuxthub deploy --${env}\`.`)
       return
     }
 

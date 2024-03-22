@@ -1,4 +1,5 @@
 import { consola } from 'consola'
+import { colors } from 'consola/utils'
 import { isCancel, select, text } from '@clack/prompts'
 import { joinURL } from 'ufo'
 import { ofetch } from 'ofetch'
@@ -93,7 +94,6 @@ export async function selectProject(team) {
       placeholder: defaultProductionBranch
     })
     if (isCancel(productionBranch)) return null
-    consola.start(`Creating project \`${projectName}\` on NuxtHub...`)
     project = await $api(`/teams/${team.slug}/projects`, {
       method: 'POST',
       body: {
@@ -110,7 +110,7 @@ export async function selectProject(team) {
       }
       throw err
     })
-    consola.success(`Project \`${project.slug}\` created`)
+    consola.success(`Project ${colors.blue(project.slug)} created`)
   } else {
     project = projects.find((project) => project.id === projectId)
   }

@@ -1,4 +1,5 @@
 import { consola } from 'consola'
+import { colors } from 'consola/utils'
 import { defineCommand } from 'citty'
 import { fetchUser } from '../utils/index.mjs'
 
@@ -13,6 +14,6 @@ export default defineCommand({
       consola.info('Not currently logged in.')
       return
     }
-    consola.info(`Logged in as \`${user.name}\``)
+    consola.info(`Logged in as ${colors.blue(user.name)}`)
   },
 })
