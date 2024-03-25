@@ -1,4 +1,5 @@
 import { consola } from 'consola'
+import { colors } from 'consola/utils'
 import WebSocket from 'ws'
 import { $api } from './data.mjs'
 
@@ -113,13 +114,17 @@ export function printFormattedLog(log) {
   // Print console logs and exceptions
   if (log.logs.length > 0) {
     log.logs.forEach(({ level, message }) => {
-      consola.log(`  (${level})`, ...message)
+      if (level === 'error') {
+        consola.error(...message)
+      } else {
+        consola.log(`  (${level})`, ...message)
+      }
     })
   }
 
   if (log.exceptions.length > 0) {
     log.exceptions.forEach(({ name, message }) => {
-      consola.error(`  ${name}:`, message)
+      consola.error(colors.red(`  ${name}:`, message))
     })
   }
 }
