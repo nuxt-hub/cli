@@ -50,8 +50,8 @@ export function printFormattedLog(log) {
   log = JSON.parse(log.toString())
   const outcome = CF_LOG_OUTCOMES[log.outcome] || CF_LOG_OUTCOMES.unknown
 
-  // Request
   if ('request' in log.event) {
+    // Request
     const { request: { method, url }, response: { status } } = log.event
     const datetime = new Date(log.eventTimestamp).toLocaleString()
 
@@ -60,39 +60,27 @@ export function printFormattedLog(log) {
         ? `${method.toUpperCase()} ${url} - ${outcome} ${status} @${datetime}`
         : `[missing request] - ${outcome} @${datetime}`
     )
-    return
-  }
-
-  // Cron
-  if ('cron' in log.event) {
+  } else if ('cron' in log.event) {
+    // Cron
     const cronPattern = log.event.cron
     const datetime = new Date(log.event.scheduledTime).toLocaleString()
     const outcome = log.outcome
 
     consola.log(`"${cronPattern}" @${datetime} - ${outcome}`)
-    return
-  }
-
-  // Email
-  if ('mailFrom' in log.event) {
+  } else if ('mailFrom' in log.event) {
+    // Email
     const datetime = new Date(log.eventTimestamp).toLocaleString()
     const mailFrom = log.event.mailFrom
     const rcptTo = log.event.rcptTo
     const rawSize = log.event.rawSize
 
     consola.log(`Email from:${mailFrom} to:${rcptTo} size:${rawSize} @${datetime} - ${outcome}`)
-    return
-  }
-
-  // Alarm
-  if ('scheduledTime' in log.event && !('cron' in log.event)) {
+  } else if ('scheduledTime' in log.event && !('cron' in log.event)) {
+    // Alarm
     const datetime = new Date(log.event.scheduledTime).toLocaleString()
     consola.log(`Alarm @${datetime} - ${outcome}`)
-    return
-  }
-
-  // Tail Event
-  if ('consumedEvents' in log.event) {
+  } else if ('consumedEvents' in log.event) {
+    // Tail Event
     const datetime = new Date(log.eventTimestamp).toLocaleString()
     const tailedScripts = new Set(
       log.event.consumedEvents
@@ -101,33 +89,26 @@ export function printFormattedLog(log) {
     )
 
     consola.log(`Tailing ${Array.from(tailedScripts).join(',')} - ${outcome} @${datetime}`)
-    return
-  }
-
-  // Tail Info
-  if ('message' in log.event && 'type' in log.event) {
+  } else if ('message' in log.event && 'type' in log.event) {
+    // Tail Info
     if (log.event.type === 'overload') {
       consola.log(log.event.message)
     } else if (log.event.type === 'overload-stop') {
       consola.log(log.event.message)
     }
-    return
-  }
-
-  // Queue
-  if ('queue' in log.event) {
+  } else if ('queue' in log.event) {
+    // Queue
     const datetime = new Date(log.eventTimestamp).toLocaleString()
     const queueName = log.event.queue
     const batchSize = log.event.batchSize
     const batchSizeMsg = `${batchSize} message${batchSize !== 1 ? 's' : ''}`
 
     consola.log(`Queue ${queueName} (${batchSizeMsg}) - ${outcome} @${datetime}`)
-    return
+  } else {
+    // Unknown event type
+    const datetime = new Date(log.eventTimestamp).toLocaleString()
+    consola.log(`Unknown Event - ${outcome} @${datetime}`)
   }
-
-  // Unknown event type
-  const datetime = new Date(log.eventTimestamp).toLocaleString()
-  consola.log(`Unknown Event - ${outcome} @${datetime}`)
 
   // Print console logs and exceptions
   if (log.logs.length > 0) {
