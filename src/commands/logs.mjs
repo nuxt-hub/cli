@@ -1,12 +1,12 @@
 import { consola } from 'consola'
 import { colors } from 'consola/utils'
+import ora from 'ora'
 import { onExit } from 'signal-exit'
 import { setTimeout } from 'timers/promises'
 import { defineCommand, runCommand } from 'citty'
 import { isCancel, confirm } from '@clack/prompts'
-import { fetchUser, projectPath, fetchProject } from '../utils/index.mjs'
+import { fetchUser, projectPath, fetchProject, getProjectEnv, connectLogs, createLogs, deleteLogs, printFormattedLog } from '../utils/index.mjs'
 import login from './login.mjs'
-import { connectLogs, createLogs, deleteLogs, printFormattedLog } from '../utils/logs.mjs'
 import link from './link.mjs'
 
 export default defineCommand({
@@ -22,8 +22,8 @@ export default defineCommand({
     },
     preview: {
       type: 'boolean',
-      description: 'Display the logs of the preview deployment.',
-      default: true
+      description: 'Display the logs of the latest preview deployment.',
+      default: false
     }
   },
   async setup({ args }) {
@@ -34,7 +34,6 @@ export default defineCommand({
       user = await fetchUser()
     }
 
-    const env = args.production ? 'production' : 'preview'
     let project = await fetchProject()
     if (!project) {
       consola.warn(`${colors.blue(projectPath())} is not linked to any NuxtHub project.`)
@@ -49,14 +48,22 @@ export default defineCommand({
       await runCommand(link, {})
       project = await fetchProject()
       if (!project) {
-        return console.log('project is null')
+        return consola.error('Could not fetch the project, please try again.')
       }
     }
+    const env = getProjectEnv(project, args)
+    const envColored = env === 'production' ? colors.green(env) : colors.yellow(env)
+    const url = (env === 'production' ? project.url : project.previewUrl)
+    if (!url) {
+      consola.info(`No deployment found for ${envColored} environment.`)
+      return consola.info(`Please run \`nuxthub deploy --${env}\` to deploy your project.`)
+    }
+    consola.success(`Linked to ${colors.blue(project.slug)} project available at \`${url}\``)
 
-    consola.start(`Connecting to ${env} deployment...`)
+    const spinner = ora(`Connecting to ${envColored} deployment...`).start()
 
     const logs = await createLogs(project.slug, project.teamSlug, env)
-    
+
     const socket = connectLogs(logs.url)
 
     const onCloseSocket = async () => {
@@ -66,11 +73,11 @@ export default defineCommand({
 
     onExit(onCloseSocket)
     socket.on('close', onCloseSocket)
-  
+
     socket.on('message', (data) => {
       printFormattedLog(data)
     })
-  
+
     while (socket.readyState !== socket.OPEN) {
       switch (socket.readyState) {
         case socket.CONNECTING:
@@ -85,7 +92,7 @@ export default defineCommand({
           process.exit(1)
       }
     }
-    
-    consola.success(`Connected to ${env} deployment waiting for logs...`)
+
+    spinner.succeed(`Connected to ${envColored} deployment waiting for logs...`)
   },
 })

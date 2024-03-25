@@ -2,7 +2,7 @@ import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import { isCancel, confirm } from '@clack/prompts'
 import { defineCommand, runCommand } from 'citty'
-import { fetchUser, projectPath, fetchProject, gitInfo } from '../utils/index.mjs'
+import { fetchUser, projectPath, fetchProject, getProjectEnv } from '../utils/index.mjs'
 import open from 'open'
 import login from './login.mjs'
 import link from './link.mjs'
@@ -45,20 +45,14 @@ export default defineCommand({
       await runCommand(link, {})
       project = await fetchProject()
       if (!project) {
-        return console.log('project is null')
+        return console.error('Could not fetch the project, please try again.')
       }
     }
     // Get the environment based on branch
-    let env = 'production'
-    if (args.preview) {
-      env = 'preview'
-    } else if (!args.production && !args.preview) {
-      const git = gitInfo()
-      // Guess the env based on the branch
-      env = (git.branch === project.productionBranch) ? 'production' : 'preview'
-    }
+    const env = getProjectEnv(project, args)
     const envColored = env === 'production' ? colors.green(env) : colors.yellow(env)
     const url = (env === 'production' ? project.url : project.previewUrl)
+    consola.info(`Opening ${envColored} URL of ${colors.blue(project.slug)} in the browser...`)
 
     if (!url) {
       consola.info(`Project ${colors.blue(project.slug)} does not have a ${envColored} URL, please run \`nuxthub deploy --${env}\`.`)
@@ -67,6 +61,6 @@ export default defineCommand({
 
     open(url)
 
-    consola.success(`Project \`${url}\` opened in the browser.`)
+    consola.success(`\`${url}\` opened in the browser.`)
   },
 })

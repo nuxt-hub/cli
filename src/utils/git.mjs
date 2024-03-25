@@ -29,3 +29,18 @@ export function gitInfo() {
   }
   return git
 }
+
+export function getProjectEnv(project, args) {
+  if (args.production) {
+    return 'production'
+  }
+  if (args.preview) {
+    return 'preview'
+  }
+  // Guess from git branch
+  const git = gitInfo()
+  if (!git.branch || git.branch === project?.productionBranch) {
+    return 'production'
+  }
+  return 'preview'
+}
