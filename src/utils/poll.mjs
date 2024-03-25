@@ -21,14 +21,12 @@ export async function pollDns (url) {
   while (Date.now() - start < TIMEOUT) {
     s.text =`Waiting for DNS to propagate (${secondsSince(start)}s)`
     if (await isDomainResolvable(domain)) {
-      s.stop()
-      consola.success(`DNS propagation ${colors.cyan('complete')}.`)
+      s.succeed(`DNS propagation ${colors.cyan('complete')}.`)
       return
     }
     await sleep(POLL_INTERVAL)
   }
-  s.stop()
-  consola.warn(`Timed out while waiting for ${colors.cyan(url)} - try accessing it in a few minutes.`)
+  s.fail(`Timed out while waiting for ${colors.cyan(url)} - try accessing it in a few minutes.`)
 }
 
 export async function pollHttp (url) {
@@ -43,19 +41,16 @@ export async function pollHttp (url) {
         headers: { 'Cache-Control': 'no-cache' },
       })
       if (response.status < 300) {
-        s.stop()
-        console.success(`Deployment is ready at ${colors.cyan(url)}`)
+        s.succeed(`Deployment is ready at ${colors.cyan(url)}`)
         return true
       }
     } catch (e) {
       if (e.response?.status === 401) {
-        s.stop()
-        consola.success(`Deployment is ready at ${colors.cyan(url)}`)
+        s.succeed(`Deployment is ready at ${colors.cyan(url)}`)
         return true
       }
       if (e.response && e.response.status !== 404) {
-        s.stop()
-        consola.error(e)
+        s.fail(e.message)
         process.exit(1)
       }
     }

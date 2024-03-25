@@ -141,7 +141,7 @@ export default defineCommand({
         files
       }
     })
-    spinner.stop()
+    spinner.succeed(`Deployed ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`)
     // Check DNS & ready url for first deployment
     if (deployment.isFirstDeploy) {
       await pollDns(deployment.url)

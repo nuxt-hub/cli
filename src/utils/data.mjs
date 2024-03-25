@@ -99,7 +99,7 @@ export async function selectProject(team) {
       body: {
         name: projectName,
         location: projectLocation,
-        productionBranch: productionBranch || 'main'
+        productionBranch: productionBranch || defaultProductionBranch
       }
     }).catch((err) => {
       if (err.response?._data?.message?.includes('Cloudflare account')) {
