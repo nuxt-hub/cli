@@ -1,4 +1,3 @@
-import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import dns2 from 'dns2'
 import { ofetch } from 'ofetch'
