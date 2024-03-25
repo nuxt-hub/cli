@@ -34,7 +34,7 @@ export default defineCommand({
       await runCommand(link, {})
       project = await fetchProject()
       if (!project) {
-        return console.log('project is null')
+        return console.error('Could not fetch the project, please try again.')
       }
     }
 

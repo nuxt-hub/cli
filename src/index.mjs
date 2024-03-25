@@ -11,6 +11,7 @@ import link from './commands/link.mjs'
 import unlink from './commands/unlink.mjs'
 import login from './commands/login.mjs'
 import logout from './commands/logout.mjs'
+import logs from './commands/logs.mjs'
 import whoami from './commands/whoami.mjs'
 import deploy from './commands/deploy.mjs'
 import open from './commands/open.mjs'
@@ -40,6 +41,7 @@ const main = defineCommand({
     manage,
     login,
     logout,
+    logs,
     whoami
   },
 })

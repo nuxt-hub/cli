@@ -40,9 +40,11 @@
     "pathe": "^1.1.2",
     "pretty-bytes": "^6.1.1",
     "rc9": "^2.1.1",
+    "signal-exit": "^4.1.0",
     "ufo": "^1.4.0",
     "unstorage": "^1.10.1",
-    "update-notifier": "^7.0.0"
+    "update-notifier": "^7.0.0",
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "@nuxt/eslint-config": "^0.2.0",
