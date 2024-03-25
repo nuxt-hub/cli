@@ -19,7 +19,7 @@ npx nuxthub
 ## Usage
 
 ```bash
-USAGE nuxthub init|deploy|link|unlink|open|manage|login|logout|whoami
+USAGE nuxthub init|deploy|link|unlink|open|manage|login|logout|logs|whoami
 
 COMMANDS
 
@@ -31,6 +31,7 @@ COMMANDS
   manage    Open in browser the NuxtHub URL for a linked project.             
    login    Authenticate with NuxtHub.                                        
   logout    Logout the current authenticated user.                            
+    logs    Display the logs of a deployment.                                 
   whoami    Shows the username of the currently logged in user.               
 
 Use nuxthub <command> --help for more information about a command.
