@@ -80,9 +80,9 @@ export default defineCommand({
           await setTimeout(100)
           break
         case socket.CLOSED:
-          throw new Error(
-            'Connection to deployment closed unexpectedly.'
-          )
+          consola.error('Connection to deployment closed unexpectedly.')
+          await onCloseSocket()
+          process.exit(1)
       }
     }
     
