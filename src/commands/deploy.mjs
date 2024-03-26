@@ -74,12 +74,14 @@ export default defineCommand({
     const deployEnv = git.branch === linkedProject.productionBranch ? 'production' : 'preview'
     const deployEnvColored = deployEnv === 'production' ? colors.green(deployEnv) : colors.yellow(deployEnv)
     consola.success(`Connected to ${colors.blue(linkedProject.teamSlug)} team.`)
+    consola.success(`Linked to ${colors.blue(linkedProject.slug)} project.`)
+    consola.info(`Preparing deployment for ${deployEnvColored}.`)
 
     if (args.build) {
       const pkg = await getPackageJson()
       const deps = Object.assign({}, pkg.dependencies, pkg.devDependencies)
       if (deps.nuxt) {
-        consola.start('Building the Nuxt project...')
+        consola.info('Building the Nuxt project...')
         await execa('./node_modules/.bin/nuxi', ['build', '--preset=cloudflare-pages'], { stdio: 'inherit' })
           .catch((err) => {
             if (err.code === 'ENOENT') {
@@ -89,7 +91,7 @@ export default defineCommand({
             throw err
           })
       } else if (deps.nitropack) {
-        consola.start('Building the Nitro project...')
+        consola.info('Building the Nitro project...')
         process.env.NITRO_PRESET = 'cloudflare-pages'
         await execa('./node_modules/.bin/nitropack', ['build'], { stdio: 'inherit' })
           .catch((err) => {
