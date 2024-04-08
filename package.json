@@ -15,7 +15,7 @@
     "src/"
   ],
   "scripts": {
-    "lint": "eslint --ext .mjs .",
+    "lint": "eslint .",
     "nuxthub": "./src/index.mjs",
     "prepublishOnly": "pnpm lint",
     "release": "release-it"

@@ -12,7 +12,7 @@ export function gitInfo() {
     execSync('git rev-parse --is-inside-work-tree', {
       stdio: 'ignore',
     })
-  } catch (err) {
+  } catch {
     isGitDir = false
   }
 
@@ -23,7 +23,7 @@ export function gitInfo() {
       git.branch = execSync('git branch --show-current', { stdio }).toString().trim()
       git.commitHash = execSync('git rev-parse HEAD', { stdio }).toString().trim()
       git.commitMessage = execSync(`git show -s --format=%B ${git.commitHash}`, { stdio }).toString().trim()
-    } catch (err) {
+    } catch {
       // Ignore
     }
   }
@@ -32,7 +32,7 @@ export function gitInfo() {
 
 export function getProjectEnv(project, args) {
   if (args.production) {
-    return 'production'
+    return "production"
   }
   if (args.preview) {
     return 'preview'
