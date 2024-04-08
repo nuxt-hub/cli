@@ -110,7 +110,10 @@ export default defineCommand({
       process.exit(1)
     }
     const srcStorage = createStorage({
-      driver: fsDriver({ base: distDir }),
+      driver: fsDriver({
+        base: distDir,
+        ignore: ['.DS_Store']
+      }),
     })
     const fileKeys = await srcStorage.getKeys()
     const files = await Promise.all(fileKeys.map(async (fileKey) => {
@@ -136,12 +139,19 @@ export default defineCommand({
     // TODO: make a tar with nanotar by the amazing Pooya Parsa (@pi0)
 
     const spinner = ora(`Deploying ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`).start()
+    setTimeout(() => spinner.color = 'magenta', 2500)
+    setTimeout(() => spinner.color = 'blue', 5000)
+    setTimeout(() => spinner.color = 'yellow', 7500)
     const deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/deploy`, {
       method: 'POST',
       body: {
         git,
         files
       }
+    }).catch((err) => {
+      spinner.fail(`Failed to deploy ${colors.blue(linkedProject.slug)} to ${deployEnvColored}.`)
+      consola.error(err.message.split('Error: ')[1])
+      process.exit(1)
     })
     spinner.succeed(`Deployed ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`)
     // Check DNS & ready url for first deployment
