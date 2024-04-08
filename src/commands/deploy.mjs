@@ -75,33 +75,22 @@ export default defineCommand({
     const deployEnvColored = deployEnv === 'production' ? colors.green(deployEnv) : colors.yellow(deployEnv)
     consola.success(`Connected to ${colors.blue(linkedProject.teamSlug)} team.`)
     consola.success(`Linked to ${colors.blue(linkedProject.slug)} project.`)
-    consola.info(`Preparing deployment for ${deployEnvColored}.`)
 
     if (args.build) {
+      consola.info('Building the Nuxt project...')
       const pkg = await getPackageJson()
       const deps = Object.assign({}, pkg.dependencies, pkg.devDependencies)
-      if (deps.nuxt) {
-        consola.info('Building the Nuxt project...')
-        await execa('./node_modules/.bin/nuxi', ['build', '--preset=cloudflare-pages'], { stdio: 'inherit' })
-          .catch((err) => {
-            if (err.code === 'ENOENT') {
-              consola.error('`nuxt` is not installed, please make sure that you are inside a Nuxt project.')
-              process.exit(1)
-            }
-            throw err
-          })
-      } else if (deps.nitropack) {
-        consola.info('Building the Nitro project...')
-        process.env.NITRO_PRESET = 'cloudflare-pages'
-        await execa('./node_modules/.bin/nitropack', ['build'], { stdio: 'inherit' })
-          .catch((err) => {
-            if (err.code === 'ENOENT') {
-              consola.error('`nitropack` is not installed, please make sure that you are inside a NitroPack project.')
-              process.exit(1)
-            }
-            throw err
-          })
+      if (!deps['@nuxthub/core']) {
+        consola.warn('`@nuxthub/core` is not installed, make sure to install it with `npx nuxt module add hub`')
       }
+      await execa('./node_modules/.bin/nuxi', ['build', '--preset=cloudflare-pages'], { stdio: 'inherit' })
+        .catch((err) => {
+          if (err.code === 'ENOENT') {
+            consola.error('`nuxt` is not installed, please make sure that you are inside a Nuxt project.')
+            process.exit(1)
+          }
+          throw err
+        })
     }
 
     const distDir = join(process.cwd(), 'dist')
