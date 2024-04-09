@@ -139,7 +139,12 @@ export default defineCommand({
       }
     }).catch((err) => {
       spinner.fail(`Failed to deploy ${colors.blue(linkedProject.slug)} to ${deployEnvColored}.`)
-      consola.error(err.message.split('Error: ')[1])
+      // Error with workers size limit
+      if (err.message.includes('Error: ')) {
+        consola.error(err.message.split('Error: ')[1])
+      } else {
+        consola.error(err.message.split(' - ')[1] || err.message)
+      }
       process.exit(1)
     })
     spinner.succeed(`Deployed ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`)
