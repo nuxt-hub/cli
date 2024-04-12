@@ -48,6 +48,8 @@ export async function linkProject(project) {
     env += `${env.length && env[env.length - 1] !== '\n' ? '\n' : ''}NUXT_HUB_PROJECT_KEY=${project.key}`
   }
   process.env.NUXT_HUB_PROJECT_KEY = project.key
+  // Make sure to remove the comment before it set
+  env = env.replace('# NUXT_HUB_PROJECT_KEY=', 'NUXT_HUB_PROJECT_KEY=')
   await writeFile(path, env, 'utf-8')
 }
 
