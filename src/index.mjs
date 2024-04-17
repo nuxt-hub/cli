@@ -19,7 +19,7 @@ import manage from './commands/manage.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pkg = loadJsonFileSync(resolve(__dirname, '../package.json'))
-updateNotifier({ pkg }).notify()
+updateNotifier({ pkg }).notify({ isGlobal: true })
 
 const main = defineCommand({
   meta: {
