@@ -34,6 +34,11 @@ export default defineCommand({
       type: 'boolean',
       description: 'Force the current deployment as preview.',
       default: false
+    },
+    dotenv: {
+      type: 'string',
+      description: 'Point to another .env file to load, relative to the root directory.',
+      default: ''
     }
   },
   async setup({ args }) {
@@ -83,7 +88,11 @@ export default defineCommand({
       if (!deps['@nuxthub/core']) {
         consola.warn('`@nuxthub/core` is not installed, make sure to install it with `npx nuxt module add hub`')
       }
-      await execa('./node_modules/.bin/nuxi', ['build', '--preset=cloudflare-pages'], { stdio: 'inherit' })
+      const nuxiBuildArgs = ['--preset=cloudflare-pages'];
+      if (args.dotenv) {
+        nuxiBuildArgs.push(`--dotenv=${args.dotenv}`);
+      }
+      await execa('./node_modules/.bin/nuxi', ['build', ...nuxiBuildArgs], { stdio: 'inherit' })
         .catch((err) => {
           if (err.code === 'ENOENT') {
             consola.error('`nuxt` is not installed, please make sure that you are inside a Nuxt project.')
