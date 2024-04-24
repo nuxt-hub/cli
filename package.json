@@ -39,7 +39,7 @@
     "ora": "^8.0.1",
     "pathe": "^1.1.2",
     "pretty-bytes": "^6.1.1",
-    "rc9": "^2.1.1",
+    "rc9": "^2.1.2",
     "signal-exit": "^4.1.0",
     "ufo": "^1.5.3",
     "unstorage": "^1.10.2",
@@ -47,9 +47,9 @@
     "ws": "^8.16.0"
   },
   "devDependencies": {
-    "@nuxt/eslint-config": "^0.3.2",
-    "eslint": "^9.0.0",
-    "release-it": "^17.1.1"
+    "@nuxt/eslint-config": "^0.3.9",
+    "eslint": "^9.1.1",
+    "release-it": "^17.2.0"
   },
   "release-it": {
     "git": {
