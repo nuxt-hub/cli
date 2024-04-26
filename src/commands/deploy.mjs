@@ -158,10 +158,10 @@ export default defineCommand({
     })
     spinner.succeed(`Deployed ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`)
     // Check DNS & ready url for first deployment
+    consola.success(`Deployment is ready at ${colors.cyan(deployment.primaryUrl || deployment.url)}`)
     if (deployment.isFirstDeploy) {
-      await pollDns(deployment.url)
+      consola.info('As this is the first deployment, please note that domain propagation may take a few minutes.')
     }
-    await pollHttp(deployment.primaryUrl || deployment.url)
     process.exit(0)
   },
 })
