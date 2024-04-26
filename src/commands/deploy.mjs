@@ -11,7 +11,7 @@ import { execa } from 'execa'
 import { existsSync } from 'fs'
 import mime from 'mime'
 import prettyBytes from 'pretty-bytes'
-import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, getPackageJson, pollDns, pollHttp, MAX_ASSET_SIZE } from '../utils/index.mjs'
+import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, getPackageJson, MAX_ASSET_SIZE } from '../utils/index.mjs'
 import login from './login.mjs'
 
 export default defineCommand({
