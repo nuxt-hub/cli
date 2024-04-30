@@ -16,7 +16,7 @@ export default defineCommand({
   },
   async setup() {
     if (isHeadless()) {
-      throw new Error('nuxthub login is not supported in Docker or SSH yet.')
+      throw new Error('nuxthub login is not supported in headless mode yet.')
     }
     const user = await fetchUser()
     if (user) {
