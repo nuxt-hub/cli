@@ -1,4 +1,4 @@
-import isDocker from 'is-docker'
+import ci from 'ci-info'
 import { updateUser, readUser, writeUser } from 'rc9'
 import { homedir } from 'os'
 import { readFile, writeFile } from 'node:fs/promises'
@@ -23,7 +23,7 @@ export function writeUserConfig (config) {
 }
 
 export function isHeadless() {
-  return isDocker() || Boolean(process.env.SSH_CLIENT || process.env.SSH_TTY)
+  return (!process.stdout.isTTY || ci.isCI)
 }
 
 export function projectPath() {
