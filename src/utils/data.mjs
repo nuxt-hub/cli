@@ -102,10 +102,14 @@ export async function selectProject(team) {
         productionBranch: productionBranch || defaultProductionBranch
       }
     }).catch((err) => {
-      if (err.response?._data?.message?.includes('Cloudflare account')) {
+      if (err.response?._data?.message?.includes('Cloudflare credentials')) {
         consola.warn('You need to link your Cloudflare account to create a project.')
         consola.info('Please configure it in your team settings:')
         consola.info(`\`${joinURL(NUXT_HUB_URL, team.slug, '/settings/cloudflare')}\`\n`)
+        process.exit(1)
+      }
+      if (err.response?._data?.message?.includes('Cloudflare account')) {
+        consola.error(err.response._data.message)
         process.exit(1)
       }
       throw err
