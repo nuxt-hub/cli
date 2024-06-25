@@ -11,7 +11,7 @@ export const $api = ofetch.create({
   onRequest({ options }) {
     options.headers = options.headers || {}
     if (!options.headers.Authorization) {
-      options.headers.Authorization = `Bearer ${loadUserConfig().hub?.userToken || ''}`
+      options.headers.Authorization = `Bearer ${loadUserConfig().hub?.userToken || process.env.NUXT_HUB_USER_TOKEN || ''}`
     }
   },
   onResponseError(ctx) {
@@ -22,10 +22,13 @@ export const $api = ofetch.create({
 })
 
 export function fetchUser() {
-  if (!loadUserConfig().hub?.userToken) {
+  if (!loadUserConfig().hub?.userToken && !process.env.NUXT_HUB_USER_TOKEN) {
     return null
   }
-  return $api('/user').catch(() => null)
+  return $api('/user').catch((err) => {
+    console.log(err.data)
+    return null
+  })
 }
 
 export async function selectTeam() {

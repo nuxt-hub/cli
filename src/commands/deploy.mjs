@@ -44,13 +44,14 @@ export default defineCommand({
   async setup({ args }) {
     let user = await fetchUser()
     if (!user) {
-      consola.info('Please login to deploy your project.')
+      consola.info('Please login to deploy your project or set the `NUXT_HUB_USER_TOKEN` environment variable.')
       await runCommand(login, {})
       user = await fetchUser()
     }
     let linkedProject = await fetchProject()
     // If the project is not linked
     if (!linkedProject) {
+      consola.info('No project is linked with the `NUXT_HUB_PROJECT_KEY` environment variable.')
       const shouldDeploy = await confirm({
         message: `Deploy ${colors.blue(projectPath())} to NuxtHub?`
       })
