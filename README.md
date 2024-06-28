@@ -52,6 +52,8 @@ nuxthub deploy --production
 nuxthub deploy --preview
 ```
 
+See [how to deploy with a GitHub action](https://hub.nuxt.com/docs/getting-started/deploy#github-action).
+
 ## Open in Browser
 
 To open your project in the browser, you can use the `nuxthub open` command. This will open the URL of your project in the default browser.
