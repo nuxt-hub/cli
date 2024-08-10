@@ -53,8 +53,9 @@ export function printFormattedLog(log) {
 
   if ('request' in log.event) {
     // Request
-    const { request: { method, url }, response: { status } } = log.event
-    const statusColored = status >= 500 ? colors.red(status) : status >= 400 ? colors.yellow(status) : colors.green(status)
+    const { request: { method, url }, response } = log.event
+    const { status } = response || {}
+    const statusColored = status ? (status >= 500 ? colors.red(status) : status >= 400 ? colors.yellow(status) : colors.green(status)) : colors.gray('aborted')
     // const datetime = new Date(log.eventTimestamp).toLocaleString()
     const path = new URL(url).pathname
 
