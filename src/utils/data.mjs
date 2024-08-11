@@ -1,6 +1,6 @@
 import { consola } from 'consola'
 import { colors } from 'consola/utils'
-import { isCancel, select, text } from '@clack/prompts'
+import { isCancel, select, text, password } from '@clack/prompts'
 import { joinURL } from 'ufo'
 import { ofetch } from 'ofetch'
 import { gitInfo } from './git.mjs'
@@ -47,6 +47,54 @@ export async function selectTeam() {
   } else {
     team = teams[0]
   }
+
+  if (!team.cloudflareAccountId) {
+    return await linkCloudflareAccount(team)
+  }
+  return team
+}
+
+export async function linkCloudflareAccount(team, retry = false) {
+  if (!retry) {
+    const tokenLink = joinURL(NUXT_HUB_URL, `cloudflare-token?name=NuxtHub+Team+${team.name}`)
+    consola.info(`You need to link your Cloudflare account to the \`${team.name}\` team.`)
+    consola.info(`Create a new Cloudflare API token by following this link:\n\`${encodeURI(tokenLink)}\``)
+  }
+  let apiToken = await password({
+    message: 'Cloudflare API token'
+  })
+  if (isCancel(apiToken)) return null
+
+  const cfAccounts = await $api('/cloudflare/accounts', {
+    params: { apiToken }
+  }).catch(() => {
+    consola.error('Couldn\'t list Cloudflare accounts\nPlease check your API Token, make sure to have "Account Settings: Read" permission.')
+    return null
+  })
+  if (!cfAccounts) return linkCloudflareAccount(team, true)
+
+  let accountId
+  if (cfAccounts.length > 1) {
+    accountId = await select({
+      message: 'Select a Cloudflare account',
+      options: cfAccounts
+    })
+  } else {
+    accountId = cfAccounts[0].id
+  }
+  if (isCancel(accountId)) return null
+
+ const account = await $api(`/teams/${team.slug}/accounts/cloudflare`, {
+    method: 'PUT',
+    body: { apiToken, accountId }
+  })
+    .catch((err) => {
+      consola.error(err.data?.message || err.message)
+      return null
+    })
+  if (!account) return linkCloudflareAccount(team, true)
+  consola.success('Cloudflare account linked.')
+
   return team
 }
 
