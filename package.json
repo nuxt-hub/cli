@@ -59,5 +59,6 @@
       "release": true,
       "releaseName": "v${version}"
     }
-  }
+  },
+  "packageManager": "pnpm@9.7.0"
 }
