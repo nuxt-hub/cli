@@ -80,7 +80,7 @@ export async function linkCloudflareAccount(team, retry = false) {
       options: cfAccounts
     })
   } else {
-    accountId = cfAccounts[0].id
+    accountId = cfAccounts[0].value
   }
   if (isCancel(accountId)) return null
 
