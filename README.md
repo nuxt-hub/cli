@@ -13,7 +13,7 @@ npm install -g nuxthub
 Or use `npx` to run the CLI without installing it:
 
 ```sh
-npx nuxthub
+npx nuxthub <command>
 ```
 
 ## Usage
@@ -53,6 +53,8 @@ nuxthub deploy --preview
 ```
 
 See [how to deploy with a GitHub action](https://hub.nuxt.com/docs/getting-started/deploy#github-action).
+
+https://github.com/user-attachments/assets/9d7d9206-1ee3-4f8f-a29d-8b9dd09b9913
 
 ## Open in browser
 
