@@ -150,7 +150,10 @@ export default defineCommand({
     }).catch((err) => {
       spinner.fail(`Failed to deploy ${colors.blue(linkedProject.slug)} to ${deployEnvColored}.`)
       // Error with workers size limit
-      if (err.message.includes('Error: ')) {
+      if (err.data?.data?.name === 'ZodError') {
+        consola.error(err.data.data.issues)
+      }
+      else if (err.message.includes('Error: ')) {
         consola.error(err.message.split('Error: ')[1])
       } else {
         consola.error(err.message.split(' - ')[1] || err.message)
