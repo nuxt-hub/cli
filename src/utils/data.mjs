@@ -25,8 +25,7 @@ export function fetchUser() {
   if (!loadUserConfig().hub?.userToken && !process.env.NUXT_HUB_USER_TOKEN) {
     return null
   }
-  return $api('/user').catch((err) => {
-    console.log(err.data)
+  return $api('/user').catch(() => {
     return null
   })
 }
