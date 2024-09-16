@@ -34,11 +34,6 @@ export function withTilde(path) {
   return path.replace(homedir(), '~')
 }
 
-export async function getPackageJson() {
-  const path = join(process.cwd(), 'package.json')
-  return JSON.parse(await readFile(path, 'utf-8'))
-}
-
 export async function linkProject(project) {
   const path = join(process.cwd(), '.env')
   let env = await readFile(path, 'utf-8').catch(() => '')
