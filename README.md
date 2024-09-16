@@ -66,6 +66,7 @@ nuxthub preview
 ```
 
 Current limitations:
+- The `--remote` flag is not supported
 - `hubAI()` will ask you connect within the terminal with wrangler
 - `hubBrowser()` is not supported as not supported by `wrangler pages dev`
 
