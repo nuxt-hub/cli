@@ -115,7 +115,12 @@ export default defineCommand({
       }),
     })
     const fileKeys = await srcStorage.getKeys()
-    const files = await Promise.all(fileKeys.map(async (fileKey) => {
+    const filesToDeploy = fileKeys.filter(fileKey => {
+      if (fileKey.startsWith('.wrangler:')) return false
+      if (fileKey === 'wrangler.toml') return false
+      return true
+    })
+    const files = await Promise.all(filesToDeploy.map(async (fileKey) => {
       const data = await srcStorage.getItemRaw(fileKey)
       const filepath = fileKey.replace(/:/g, '/')
       const fileContentBase64 = data.toString('base64')
