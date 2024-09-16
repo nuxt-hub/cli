@@ -117,6 +117,7 @@ export default defineCommand({
     const fileKeys = await srcStorage.getKeys()
     const filesToDeploy = fileKeys.filter(fileKey => {
       if (fileKey.startsWith('.wrangler:')) return false
+      if (fileKey.startsWith('node_modules:')) return false
       if (fileKey === 'wrangler.toml') return false
       return true
     })
