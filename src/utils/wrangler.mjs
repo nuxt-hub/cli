@@ -14,10 +14,15 @@ export function generateWrangler(hub) {
   if (hub.bindings?.compatibilityDate) {
     wrangler['compatibility_date'] = hub.bindings.compatibilityDate
   }
+
   if (hub.ai) {
     wrangler['ai'] = {
       binding: 'AI'
     }
+  }
+
+  if (hub.browser) {
+    wrangler['browser'] = { binding: 'BROWSER' }
   }
 
   if (hub.analytics) {
@@ -34,11 +39,20 @@ export function generateWrangler(hub) {
     }]
   }
 
+  if (hub.kv || hub.cache) {
+    wrangler['kv_namespaces'] = []
+  }
   if (hub.kv) {
-    wrangler['kv_namespaces'] = [{
+    wrangler['kv_namespaces'].push({
       binding: 'KV',
       id: 'kv_default'
-    }]
+    })
+  }
+  if (hub.cache) {
+    wrangler['kv_namespaces'].push({
+      binding: 'CACHE',
+      id: 'cache_default'
+    })
   }
 
   if (hub.database) {

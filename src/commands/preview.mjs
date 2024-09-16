@@ -1,6 +1,6 @@
 import { consola } from 'consola'
 import { defineCommand } from 'citty'
-import { writeFile, unlink } from 'node:fs/promises'
+import { readFile, writeFile, unlink } from 'node:fs/promises'
 import { join } from 'pathe'
 import { execa } from 'execa'
 import { existsSync } from 'fs'
@@ -20,6 +20,13 @@ export default defineCommand({
     if (!existsSync(distDir) || !hubConfig) {
       consola.error(`Production build not found, please run \`npx nuxt build\``)
       process.exit(1)
+    }
+
+    // Add .wrangler to .gitignore
+    const gitignorePath = join(process.cwd(), '.gitignore')
+    const gitignore = await readFile(gitignorePath, 'utf-8').catch(() => '')
+    if (gitignore && !gitignore.includes('.wrangler')) {
+      await writeFile(gitignorePath, `${gitignore ? gitignore + '\n' : gitignore}.wrangler`, 'utf-8')
     }
 
     consola.info('Generating wrangler.toml...')

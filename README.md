@@ -65,6 +65,10 @@ To preview your project locally, you can use the `nuxthub preview` command. This
 nuxthub preview
 ```
 
+Current limitations:
+- `hubAI()` will ask you connect within the terminal with wrangler
+- `hubBrowser()` is not supported as not supported by `wrangler pages dev`
+
 ## Open in browser
 
 To open your project in the browser, you can use the `nuxthub open` command. This will open the URL of your project in the default browser.
