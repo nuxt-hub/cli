@@ -13,6 +13,7 @@ import login from './commands/login.mjs'
 import logout from './commands/logout.mjs'
 import logs from './commands/logs.mjs'
 import whoami from './commands/whoami.mjs'
+import preview from './commands/preview.mjs'
 import deploy from './commands/deploy.mjs'
 import open from './commands/open.mjs'
 import manage from './commands/manage.mjs'
@@ -35,6 +36,7 @@ const main = defineCommand({
   subCommands: {
     init,
     deploy,
+    preview,
     link,
     unlink,
     open,

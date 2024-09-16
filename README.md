@@ -25,6 +25,7 @@ COMMANDS
 
     init    Initialize a fresh NuxtHUb project, alias of nuxi init -t hub.  
   deploy    Deploy your project to NuxtHub.                                   
+ preview    Preview your project locally (using wrangler pages dev).   
     link    Link a local directory to a NuxtHub project.                      
   unlink    Unlink a local directory from a NuxtHub project.                  
     open    Open in browser the project's URL linked to the current directory.
@@ -55,6 +56,14 @@ nuxthub deploy --preview
 See [how to deploy with a GitHub action](https://hub.nuxt.com/docs/getting-started/deploy#github-action).
 
 https://github.com/user-attachments/assets/9d7d9206-1ee3-4f8f-a29d-8b9dd09b9913
+
+## Preview before deploy
+
+To preview your project locally, you can use the `nuxthub preview` command. This will temporarily generate a `wrangler.toml` file and run `wrangler pages dev` to preview your project.
+
+```bash
+nuxthub preview
+```
 
 ## Open in browser
 
