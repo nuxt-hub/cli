@@ -1,6 +1,6 @@
 {
   "name": "nuxthub",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "license": "Apache-2.0",
   "description": "Interface with the NuxtHub platform from the command line.",
   "keywords": [
