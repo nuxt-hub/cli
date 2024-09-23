@@ -93,6 +93,14 @@ To open your project's admin in the browser, you can use the `nuxthub manage` co
 nuxthub manage
 ```
 
+## Debug
+
+To debug the CLI, you can use the `DEBUG=1` environment variable. This will print the API call made and explicit errors.
+
+```bash
+DEBUG=1 nuxthub <command>
+```
+
 ## License
 
 [Apache 2.0](./LICENSE)

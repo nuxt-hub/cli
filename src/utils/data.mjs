@@ -8,13 +8,15 @@ import { NUXT_HUB_URL, loadUserConfig } from './config.mjs'
 
 export const $api = ofetch.create({
   baseURL: joinURL(NUXT_HUB_URL, '/api'),
-  onRequest({ options }) {
+  onRequest({ request, options }) {
     options.headers = options.headers || {}
     if (!options.headers.Authorization) {
       options.headers.Authorization = `Bearer ${loadUserConfig().hub?.userToken || process.env.NUXT_HUB_USER_TOKEN || ''}`
     }
+    consola.debug(`Fetching \`${joinURL(options.baseURL, request)}\``)
   },
   onResponseError(ctx) {
+    consola.debug(`Error when fetching \`${ctx.request}\``)
     if (ctx.response._data?.message) {
       ctx.error = new Error(`- ${ctx.response._data.message}`)
     }
