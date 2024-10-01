@@ -19,6 +19,9 @@ export const $api = ofetch.create({
     if (ctx.response._data?.message) {
       ctx.error = new Error(`- ${ctx.response._data.message}`)
     }
+    if (ctx.response._data?.data) {
+      consola.debug(ctx.response._data?.data)
+    }
   }
 })
 
