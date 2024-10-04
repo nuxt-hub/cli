@@ -12,6 +12,7 @@ import { existsSync } from 'fs'
 import mime from 'mime'
 import prettyBytes from 'pretty-bytes'
 import { loadNuxtConfig } from '@nuxt/kit'
+import { setupDotenv } from 'c12'
 import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, MAX_ASSET_SIZE } from '../utils/index.mjs'
 import login from './login.mjs'
 
@@ -43,6 +44,14 @@ export default defineCommand({
     }
   },
   async setup({ args }) {
+    const cwd = process.cwd()
+    if (args.dotenv) {
+      consola.info(`Loading env from \`${args.dotenv}\``)
+      await setupDotenv({
+        cwd,
+        fileName: args.dotenv
+      })
+    }
     let user = await fetchUser()
     if (!user) {
       consola.info('Please login to deploy your project or set the `NUXT_HUB_USER_TOKEN` environment variable.')
@@ -105,7 +114,7 @@ export default defineCommand({
         })
     }
 
-    const distDir = join(process.cwd(), 'dist')
+    const distDir = join(cwd, 'dist')
     if (!existsSync(distDir)) {
       consola.error(`${colors.cyan(withTilde(distDir))} directory not found, please make sure that you have built your project.`)
       process.exit(1)
