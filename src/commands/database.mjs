@@ -18,7 +18,7 @@ const createMigration = defineCommand({
   },
   async run({ args }) {
     const cwd = process.cwd()
-    const migrationsDir = join(cwd, 'server/migrations')
+    const migrationsDir = join(cwd, 'server/database/migrations')
     const srcStorage = createStorage({
       driver: fsDriver({
         base: migrationsDir,
