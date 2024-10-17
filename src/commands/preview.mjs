@@ -13,7 +13,7 @@ export default defineCommand({
     description: 'Preview your project locally (using `wrangler pages dev`).',
   },
   args: {},
-  async setup() {
+  async run() {
     const distDir = join(process.cwd(), 'dist')
     // Read the dist/hub.config.json file
     const hubConfig = await loadJsonFile(join(distDir, 'hub.config.json')).catch(() => null)

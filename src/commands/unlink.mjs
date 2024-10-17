@@ -10,7 +10,7 @@ export default defineCommand({
     name: 'link',
     description: 'Unlink a local directory from a NuxtHub project.',
   },
-  async setup() {
+  async run() {
     let user = await fetchUser()
     if (!user) {
       consola.info('Please login to unlink your project.')

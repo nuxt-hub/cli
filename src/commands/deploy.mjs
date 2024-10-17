@@ -43,7 +43,7 @@ export default defineCommand({
       default: ''
     }
   },
-  async setup({ args }) {
+  async run({ args }) {
     const cwd = process.cwd()
     if (args.dotenv) {
       consola.info(`Loading env from \`${args.dotenv}\``)

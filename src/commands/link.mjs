@@ -10,7 +10,7 @@ export default defineCommand({
     name: 'link',
     description: 'Link a local directory to a NuxtHub project.',
   },
-  async setup() {
+  async run() {
     let user = await fetchUser()
     if (!user) {
       consola.info('Please login to link your project.')

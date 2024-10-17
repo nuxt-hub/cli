@@ -13,7 +13,7 @@ export default defineCommand({
     name: 'open',
     description: 'Open in browser the NuxtHub URL for a linked project.',
   },
-  async setup() {
+  async run() {
     let user = await fetchUser()
     if (!user) {
       consola.info('Please login to open a project in your browser.')

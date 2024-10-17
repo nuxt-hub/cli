@@ -7,7 +7,7 @@ export default defineCommand({
     name: 'logout',
     description: 'Logout the current authenticated user.',
   },
-  async setup() {
+  async run() {
     const user = await fetchUser()
     if (!user) {
       consola.info('Not currently logged in.')
