@@ -14,7 +14,7 @@ export default defineCommand({
     name: 'login',
     description: 'Authenticate with NuxtHub.',
   },
-  async setup() {
+  async run() {
     if (isHeadless()) {
       throw new Error('nuxthub login is not supported in headless mode yet.')
     }

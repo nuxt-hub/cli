@@ -8,7 +8,7 @@ export default defineCommand({
     name: 'whoami',
     description: 'Shows the username of the currently logged in user.',
   },
-  async setup() {
+  async run() {
     const user = await fetchUser()
     if (!user) {
       consola.info('Not currently logged in.')

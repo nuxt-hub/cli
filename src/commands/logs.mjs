@@ -26,7 +26,7 @@ export default defineCommand({
       default: false
     }
   },
-  async setup({ args }) {
+  async run({ args }) {
     let user = await fetchUser()
     if (!user) {
       consola.info('Please login to deploy your project.')
