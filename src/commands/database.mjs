@@ -1,8 +1,7 @@
 import { consola } from 'consola'
 import { defineCommand } from 'citty'
-import { join } from 'pathe'
-import { createStorage } from 'unstorage'
-import fsDriver from 'unstorage/drivers/fs'
+import { useMigrationsStorage, getMigrationFiles, getNextMigrationNumber } from '../utils/database.mjs'
+import { getProjectEnv } from '../utils/git.mjs';
 
 const createMigration = defineCommand({
   meta: {
@@ -17,26 +16,7 @@ const createMigration = defineCommand({
     },
   },
   async run({ args }) {
-    const cwd = process.cwd()
-    const migrationsDir = join(cwd, 'server/database/migrations')
-    const srcStorage = createStorage({
-      driver: fsDriver({
-        base: migrationsDir,
-        ignore: ['.DS_Store']
-      }),
-    })
-
-    const fileKeys = await srcStorage.getKeys()
-    const sqlFiles = fileKeys.filter(file => file.endsWith('.sql'))
-
-    // only get files with a 4 digit number prefix (0000_)
-    const lastSequentialMigrationNumber = sqlFiles
-      .map(file => file.split('_')[0])
-      .map(num => parseInt(num))
-      .sort((a, b) => a - b)
-      .pop() ?? 0
-
-    const nextMigrationNumber = (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
+    const nextMigrationNumber = await getNextMigrationNumber()
     const name = args.name
       .trim()
       .toLowerCase()
@@ -45,7 +25,7 @@ const createMigration = defineCommand({
       .replace(/^-+/, '') // remove leading and trailing dashes
       || 'migration'
     const migrationName = `${nextMigrationNumber}_${name}.sql`
-    await srcStorage.set(migrationName, `-- Migration number: ${nextMigrationNumber} \t ${new Date().toISOString()}\n`)
+    await useMigrationsStorage().set(migrationName, `-- Migration number: ${nextMigrationNumber} \t ${new Date().toISOString()}\n`)
 
     consola.success(`Created migration file \`server/migrations/${migrationName}\``)
   }
