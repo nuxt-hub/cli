@@ -138,13 +138,13 @@ const listMigrations = defineCommand({
     const formattedUnappliedMigrations = unappliedMigrations.map(fileName => [null, fileName, null])
     const allMigrations = remoteMigrations.concat(formattedUnappliedMigrations)
 
-    // TODO: properly format the output
     for (const migration of allMigrations) {
+      // eslint-disable-next-line no-unused-vars
       const [_id, name, applied_at] = migration
       const isApplied = !!applied_at
       const appliedAt = isApplied ? new Date(applied_at).toLocaleString() : 'Pending'
       const color = isApplied ? colors.green : colors.yellow
-      consola.log(`${color(isApplied ? '✔' : '🕒')} ${name} - ${appliedAt}`)
+      consola.log(`${color(isApplied ? '✅' : '🕒')} ${name} ${colors.gray(appliedAt)}`)
     }
   }
 })
