@@ -1,15 +1,12 @@
+import ora from 'ora';
 import { consola } from 'consola'
-import { defineCommand, runCommand } from 'citty'
-import { useMigrationsStorage, getMigrationFiles, getNextMigrationNumber } from '../utils/database.mjs'
-import { getProjectEnv } from '../utils/git.mjs';
 import { colors } from 'consola/utils';
-import { $api, fetchProject, fetchUser } from '../utils/data.mjs';
-import { projectPath } from '../utils/config.mjs';
-import { isCancel } from '@clack/prompts';
+import { isCancel, confirm } from '@clack/prompts'
+import { defineCommand, runCommand } from 'citty'
+import { useMigrationsStorage, getMigrationFiles, getNextMigrationNumber, getRemoteMigrations } from '../utils/database.mjs'
+import { fetchUser, projectPath, fetchProject, getProjectEnv } from '../utils/index.mjs'
 import link from './link.mjs';
 import login from './login.mjs';
-import ora from 'ora';
-import { joinURL } from 'ufo'
 
 const createMigration = defineCommand({
   meta: {
@@ -42,17 +39,17 @@ const createMigration = defineCommand({
 const listMigrations = defineCommand({
   meta: {
     name: 'list',
-    description: 'List migrations which are pending and which have been applied.',
+    description: 'List applied and pending migrations.',
   },
   args: {
     production: {
       type: 'boolean',
-      description: 'List applied and unapplied migrations on the production environment.',
+      description: 'List applied and pending migrations for the production environment.',
       default: false
     },
     preview: {
       type: 'boolean',
-      description: 'List applied and unapplied migrations on the preview environment.',
+      description: 'List applied and pending migrations for the preview environment.',
       default: false
     }
   },
@@ -91,61 +88,32 @@ const listMigrations = defineCommand({
       return
     }
 
-    // Get local migrations files
-    const migrationFiles = await getMigrationFiles()
-    if (!migrationFiles.length) {
+    const spinner = ora(`Retrieving migrations on ${envColored} for ${colors.blue(project.slug)}...`).start()
+
+    const remoteMigrations = await getRemoteMigrations(env).catch((error) => {
+      spinner.fail(`Could not retrieve migrations on ${envColored} for ${colors.blue(project.slug)}.`)
+      if (error) consola.error(error)
+    })
+    spinner.stop()
+    if (!remoteMigrations) process.exit(1)
+    if (!remoteMigrations.length) consola.warn(`No applied migrations on ${envColored} for ${colors.blue(project.slug)}.`)
+
+    const localMigrations = (await getMigrationFiles()).map(fileName => fileName.replace('.sql', ''))
+    const pendingMigrations = localMigrations.filter(localName => !remoteMigrations.find(({ name }) => name === localName))
+    const formattedPendingMigrations = pendingMigrations.map(fileName => ({ id: null, name: fileName, applied_at: null }))
+    const migrations = remoteMigrations.concat(formattedPendingMigrations)
+
+    if (!localMigrations.length) {
       consola.warn('No local migration files found.')
     }
 
-    // Loading while querying remote for migrations
-    const spinner = ora(`Retrieving migrations on ${envColored} for ${colors.blue(project.slug)}...`).start()
-    setTimeout(() => spinner.color = 'magenta', 2500)
-    setTimeout(() => spinner.color = 'blue', 5000)
-    setTimeout(() => spinner.color = 'yellow', 7500)
-
-    /**
-     * @type {Array<[number, string, number]>}
-     */
-    const remoteMigrations = await $api(`database/query`, {
-      baseURL: joinURL(url, '/api/_hub'),
-      headers: {
-        Authorization: `Bearer ${project.userProjectToken}`
-      },
-      method: 'POST',
-      body: {
-        query: 'select "id", "name", "applied_at" from "d1_migrations" order by "d1_migrations"."id"',
-        mode: 'raw'
-      }
-    }).catch((error) => {
-      if (error.response?.status === 500 && error.response?._data?.message.includes('no such table')) {
-        return []
-      }
-
-      spinner.fail(`Could not retrieve migrations on ${envColored} for ${colors.blue(project.slug)}.`)
-      if (error.response?.status === 422) {
-        console.error(`NuxtHub database is not enabled on ${env}. Deploy a new version with hub.database enabled and try again.`, error)
-      }
-      return null
-    })
-
-    spinner.stop()
-    if (!remoteMigrations) return // stop if error
-    if (!remoteMigrations.length) consola.warn(`No applied migrations on ${envColored} for ${colors.blue(project.slug)}.`)
-    if (Array.isArray(remoteMigrations[0])) remoteMigrations.shift() // remove column names
-
-    const localMigrations = migrationFiles.map(fileName => fileName.replace('.sql', ''))
-    const unappliedMigrations = localMigrations.filter(localName => !remoteMigrations.find(([_id, name]) => name === localName))
-    const formattedUnappliedMigrations = unappliedMigrations.map(fileName => [null, fileName, null])
-    const allMigrations = remoteMigrations.concat(formattedUnappliedMigrations)
-
-    for (const migration of allMigrations) {
-      // eslint-disable-next-line no-unused-vars
-      const [_id, name, applied_at] = migration
-      const isApplied = !!applied_at
-      const appliedAt = isApplied ? new Date(applied_at).toLocaleString() : 'Pending'
-      const color = isApplied ? colors.green : colors.yellow
-      consola.log(`${color(isApplied ? '✅' : '🕒')} ${name} ${colors.gray(appliedAt)}`)
+    for (const { name, applied_at } of migrations) {
+      const appliedAt = applied_at ? new Date(applied_at).toLocaleString() : 'Pending'
+      const color = applied_at ? colors.green : colors.yellow
+      consola.log(`${color(applied_at ? '✅' : '🕒')} ${name} ${colors.gray(appliedAt)}`)
     }
+
+    process.exit(0)
   }
 })
 
