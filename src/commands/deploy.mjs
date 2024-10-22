@@ -14,6 +14,7 @@ import prettyBytes from 'pretty-bytes'
 import { loadNuxtConfig } from '@nuxt/kit'
 import { setupDotenv } from 'c12'
 import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, MAX_ASSET_SIZE } from '../utils/index.mjs'
+import { createMigrationsTable, getRemoteMigrations, useDatabaseQuery } from '../utils/database.mjs'
 import login from './login.mjs'
 
 export default defineCommand({
@@ -130,6 +131,7 @@ export default defineCommand({
       if (fileKey.startsWith('.wrangler:')) return false
       if (fileKey.startsWith('node_modules:')) return false
       if (fileKey === 'wrangler.toml') return false
+      if (fileKey.startsWith('database:migrations:')) return false
       return true
     })
     const files = await Promise.all(filesToDeploy.map(async (fileKey) => {
@@ -178,11 +180,68 @@ export default defineCommand({
       process.exit(1)
     })
     spinner.succeed(`Deployed ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`)
+
+    // Apply migrations
+    const hubModuleConfig = await srcStorage.getItemRaw('hub.config.json')
+    if (!hubModuleConfig.database) {
+      const remoteMigrationsSpinner = ora(`Retrieving migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}...`).start()
+
+      await createMigrationsTable(deployEnv)
+
+      const remoteMigrations = await getRemoteMigrations(deployEnv).catch((error) => {
+        remoteMigrationsSpinner.fail(`Could not retrieve migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}.`)
+        if (error) consola.error(error)
+      })
+      remoteMigrationsSpinner.stop()
+      if (!remoteMigrations.length) consola.warn(`No applied migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}.`)
+
+      const localMigrations = fileKeys
+        .filter(fileKey => {
+          const isMigrationsDir = fileKey.startsWith('database:migrations:')
+          const isSqlFile = fileKey.endsWith('.sql')
+          return isMigrationsDir && isSqlFile
+        })
+        .map(fileName => {
+          return fileName
+            .replace('database:migrations:', '')
+            .replace('.sql', '')
+        })
+      const pendingMigrations = localMigrations.filter(localName => !remoteMigrations.find(({ name }) => name === localName))
+
+      if (!pendingMigrations.length) {
+        consola.info('No pending migrations to apply.')
+      }
+
+      for (const migration of pendingMigrations) {
+        const migrationSpinner = ora(`Applying migration ${colors.blue(migration)}...`).start()
+
+        const migrationFile = await srcStorage.getItemRaw(`database:migrations:${migration}.sql`)
+        let query = migrationFile.toString()
+
+        if (query.at(-1) !== ';') query += ';' // ensure previous statement ended before running next query
+			  query += `
+          INSERT INTO hub_migrations (name) values ('${migration}');
+        `;
+
+        try {
+          await useDatabaseQuery(deployEnv, query)
+        } catch (error) {
+          migrationSpinner.fail(`Failed to apply migration ${colors.blue(migration)}.`)
+
+          if (error) consola.error(error.response?._data?.message || error)
+          break
+        }
+
+        migrationSpinner.succeed(`Applied migration ${colors.blue(migration)}.`)
+      }
+    }
+
     // Check DNS & ready url for first deployment
     consola.success(`Deployment is ready at ${colors.cyan(deployment.primaryUrl || deployment.url)}`)
     if (deployment.isFirstDeploy) {
       consola.info('As this is the first deployment, please note that domain propagation may take a few minutes.')
     }
+
     process.exit(0)
   },
 })
