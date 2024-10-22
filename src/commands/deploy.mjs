@@ -219,7 +219,7 @@ export default defineCommand({
         let query = migrationFile.toString()
 
         if (query.at(-1) !== ';') query += ';' // ensure previous statement ended before running next query
-			  query += `
+	      query += `
           INSERT INTO hub_migrations (name) values ('${migration}');
         `;
 
