@@ -33,8 +33,19 @@ export default defineCommand({
     const wrangler = generateWrangler(hubConfig)
     const wranglerPath = join(distDir, 'wrangler.toml')
     await writeFile(wranglerPath, wrangler)
+    const options = { stdin: 'inherit', stdout: 'inherit', cwd: distDir, preferLocal: true, localDir: process.cwd() }
+    if (hubConfig.database && existsSync(join(distDir, 'database/migrations'))) {
+      consola.info('Applying migrations...')
+      await execa({ ...options, stdin: 'ignore' })`wrangler d1 migrations apply default --local`
+      .catch((err) => {
+        if (err.code === 'ENOENT') {
+          consola.error('`wrangler` is not installed, please make sure that you installed it with `npx nypm i -D wrangler`')
+          process.exit(1)
+        }
+        throw err
+      })
+    }
     consola.info('Starting `wrangler pages dev` command...')
-    const options = { stdio: 'inherit', cwd: distDir, preferLocal: true, localDir: process.cwd() }
     await execa(options)`wrangler pages dev .`
       .catch((err) => {
         if (err.code === 'ENOENT') {

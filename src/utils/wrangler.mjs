@@ -59,7 +59,9 @@ export function generateWrangler(hub) {
     wrangler['d1_databases'] = [{
       binding: 'DB',
       database_name: 'default',
-      database_id: 'default'
+      database_id: 'default',
+      migrations_table: 'hub_migrations',
+      migrations_dir: 'database/migrations'
     }]
   }
 
