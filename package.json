@@ -22,7 +22,6 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",
-    "@nuxt/kit": "^3.13.2",
     "blake3-wasm": "^2.1.5",
     "c12": "^2.0.0",
     "ci-info": "^4.0.0",
