@@ -11,9 +11,8 @@ import { execa } from 'execa'
 import { existsSync } from 'fs'
 import mime from 'mime'
 import prettyBytes from 'pretty-bytes'
-import { loadNuxtConfig } from '@nuxt/kit'
 import { setupDotenv } from 'c12'
-import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, MAX_ASSET_SIZE } from '../utils/index.mjs'
+import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, getPackageJson, MAX_ASSET_SIZE } from '../utils/index.mjs'
 import { createMigrationsTable, getRemoteMigrations, useDatabaseQuery } from '../utils/database.mjs'
 import login from './login.mjs'
 
@@ -87,11 +86,6 @@ export default defineCommand({
       git.branch = linkedProject.productionBranch === 'preview' ? 'force_preview' : 'preview'
     }
 
-    const nuxtConfig = await loadNuxtConfig({})
-    if (!nuxtConfig.modules?.includes('@nuxthub/core')) {
-      consola.error('`@nuxthub/core` is not detected, make sure to install and enable it with `npx nuxi module add hub`')
-      process.exit(1)
-    }
     // Default to main branch
     git.branch = git.branch || 'main'
     const deployEnv = git.branch === linkedProject.productionBranch ? 'production' : 'preview'
@@ -101,6 +95,12 @@ export default defineCommand({
 
     if (args.build) {
       consola.info('Building the Nuxt project...')
+      const pkg = await getPackageJson()
+      const deps = Object.assign({}, pkg.dependencies, pkg.devDependencies)
+      if (!deps['@nuxthub/core']) {
+        consola.error('`@nuxthub/core` is not installed, make sure to install it with `npx nuxt module add hub`')
+        process.exit(1)
+      }
       const nuxiBuildArgs = []
       if (args.dotenv) {
         nuxiBuildArgs.push(`--dotenv=${args.dotenv}`)
