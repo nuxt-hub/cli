@@ -193,6 +193,7 @@ export default defineCommand({
         if (error) consola.error(error)
       })
       remoteMigrationsSpinner.stop()
+      if (!remoteMigrations) process.exit(1)
       if (!remoteMigrations.length) consola.warn(`No applied migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}.`)
 
       const localMigrations = fileKeys
@@ -207,10 +208,7 @@ export default defineCommand({
             .replace('.sql', '')
         })
       const pendingMigrations = localMigrations.filter(localName => !remoteMigrations.find(({ name }) => name === localName))
-
-      if (!pendingMigrations.length) {
-        consola.info('No pending migrations to apply.')
-      }
+      if (!pendingMigrations.length) consola.info('No pending migrations to apply.')
 
       for (const migration of pendingMigrations) {
         const migrationSpinner = ora(`Applying migration ${colors.blue(migration)}...`).start()
