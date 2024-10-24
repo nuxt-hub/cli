@@ -4,6 +4,21 @@ import fsDriver from 'unstorage/drivers/fs'
 import { $api } from './data.mjs'
 
 /**
+ * @type {Promise<Array<{ results: Array, success: boolean, meta: object}>>}
+ */
+export const useDatabaseQuery = async (env, query) => {
+  return await $api(`/projects/${process.env.NUXT_HUB_PROJECT_KEY}/database/${env}/query`, {
+    method: 'POST',
+    body: { query, mode: 'raw' }
+  }).catch((error) => {
+    if (error.response?.status === 400) {
+      throw `NuxtHub database is not enabled on \`${env}\`. Deploy a new version with \`hub.database\` enabled and try again.`
+    }
+    throw error
+  })
+}
+
+/**
  * @type {import('unstorage').Storage}
  */
 let _storage
@@ -19,21 +34,6 @@ export const useMigrationsStorage = () => {
     })
   }
   return _storage
-}
-
-/**
- * @type {Promise<Array<{ results: Array, success: boolean, meta: object}>>}
- */
-export const useDatabaseQuery = async (env, query) => {
-  return await $api(`/projects/${process.env.NUXT_HUB_PROJECT_KEY}/database/${env}/query`, {
-    method: 'POST',
-    body: { query, mode: 'raw' }
-  }).catch((error) => {
-    if (error.response?.status === 400) {
-      throw `NuxtHub database is not enabled on \`${env}\`. Deploy a new version with \`hub.database\` enabled and try again.`
-    }
-    throw error
-  })
 }
 
 export const getMigrationFiles = async () => {
@@ -52,6 +52,15 @@ export const getNextMigrationNumber = async () => {
   return (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
 }
 
+export const createMigrationsTable = async (env) => {
+  const query = `CREATE TABLE IF NOT EXISTS hub_migrations (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT UNIQUE,
+    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+  );`
+  await useDatabaseQuery(env, query)
+}
+
 /**
  * @type {Promise<Array<{ id: number, name: string, applied_at: string }>>}
  */
@@ -63,13 +72,4 @@ export const getRemoteMigrations = async (env) => {
     }
     throw ''
   }))?.[0]?.results ?? []
-}
-
-export const createMigrationsTable = async (env) => {
-  const query = `CREATE TABLE IF NOT EXISTS hub_migrations (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    name       TEXT UNIQUE,
-    applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-  );`
-  await useDatabaseQuery(env, query)
 }
