@@ -9,7 +9,7 @@ import { $api } from './data.mjs'
 export const useDatabaseQuery = async (env, query) => {
   return await $api(`/projects/${process.env.NUXT_HUB_PROJECT_KEY}/database/${env}/query`, {
     method: 'POST',
-    body: { query, mode: 'raw' }
+    body: { query }
   }).catch((error) => {
     if (error.response?.status === 400) {
       throw `NuxtHub database is not enabled on \`${env}\`. Deploy a new version with \`hub.database\` enabled and try again.`
