@@ -134,6 +134,10 @@ export default defineCommand({
       if (fileKey.startsWith('database:migrations:')) return false
       return true
     })
+    if (!filesToDeploy.find(key => key === 'hub.config.json')) {
+      consola.error('`dist/hub.config.json` is missing, please make that `@nuxthub/core` is enabled in your `nuxt.config.ts`.')
+      process.exit(1)
+    }
     const files = await Promise.all(filesToDeploy.map(async (fileKey) => {
       const data = await srcStorage.getItemRaw(fileKey)
       const filepath = fileKey.replace(/:/g, '/')
