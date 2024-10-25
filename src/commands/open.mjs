@@ -1,6 +1,5 @@
 import { consola } from 'consola'
 import { colors } from 'consola/utils'
-import { isCancel, confirm } from '@clack/prompts'
 import { defineCommand, runCommand } from 'citty'
 import { fetchUser, projectPath, fetchProject, getProjectEnv } from '../utils/index.mjs'
 import open from 'open'
@@ -35,13 +34,6 @@ export default defineCommand({
     if (!project) {
       consola.warn(`${colors.blue(projectPath())} is not linked to any NuxtHub project.`)
 
-      const shouldLink = await confirm({
-        message: 'Do you want to link it to a project?',
-        initialValue: false
-      })
-      if (!shouldLink || isCancel(shouldLink)) {
-        return
-      }
       await runCommand(link, {})
       project = await fetchProject()
       if (!project) {

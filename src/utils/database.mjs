@@ -1,29 +1,46 @@
+import { consola } from 'consola'
 import { join } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import { $api } from './data.mjs'
+import { $fetch } from 'ofetch'
 
-/**
- * @type {Promise<Array<{ results: Array, success: boolean, meta: object}>>}
- *
- * @param {string} env
- * @param {string} query
- * @param {string[] | undefined} params
- */
-export const useDatabaseQuery = async (env, query, params) => {
-  return await $api(`/projects/${process.env.NUXT_HUB_PROJECT_KEY}/database/${env}/query`, {
+
+export async function queryDatabase({ env, url, token, query, params }) {
+  if (url) {
+    return queryRemoteDatabase({ url, token, query, params })
+  }
+  return $api(`/projects/${process.env.NUXT_HUB_PROJECT_KEY}/database/${env}/query`, {
     method: 'POST',
     body: { query, params }
-  }).catch((error) => {
-    throw error.message
   })
 }
+
+// Used for localhost or sef-hosted projects
+export async function queryRemoteDatabase({ url, token, query, params })  {
+  return await $fetch(`${url}/api/_hub/database/query`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    body: { query, params }
+  }).catch((error) => {
+    if (error.message.includes('fetch failed')) {
+      consola.error(`Could not connect to \`${url}/api/_hub/database/query\``)
+      if (url.includes('localhost:')) {
+        consola.warn('Please make sure to run the Nuxt development server with `npx nuxt dev`.')
+      }
+    }
+    throw error
+  })
+}
+
 
 /**
  * @type {import('unstorage').Storage}
  */
 let _storage
-export const useMigrationsStorage = () => {
+export function useMigrationsStorage() {
   if (!_storage) {
     const cwd = process.cwd()
     const migrationsDir = join(cwd, 'server/database/migrations')
@@ -37,12 +54,12 @@ export const useMigrationsStorage = () => {
   return _storage
 }
 
-export const getMigrationFiles = async () => {
+export async function getMigrationFiles() {
   const fileKeys = await useMigrationsStorage().getKeys()
   return fileKeys.filter(file => file.endsWith('.sql'))
 }
 
-export const getNextMigrationNumber = async () => {
+export async function getNextMigrationNumber() {
   const files = await getMigrationFiles()
   const lastSequentialMigrationNumber = files
     .map(file => file.split('_')[0])
@@ -53,24 +70,28 @@ export const getNextMigrationNumber = async () => {
   return (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
 }
 
-export const createMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS _hub_migrations (
+const CreateMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS _hub_migrations (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT UNIQUE,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );`
-export const createMigrationsTable = async (env) => {
-  await useDatabaseQuery(env, createMigrationsTableQuery)
+export async function createMigrationsTable({ env, url, token }) {
+  await queryDatabase({ env, url, token, query: CreateMigrationsTableQuery })
 }
 
 /**
  * @type {Promise<Array<{ id: number, name: string, applied_at: string }>>}
  */
-export const getRemoteMigrations = async (env) => {
+export async function fetchRemoteMigrations({ env, url, token }) {
   const query = 'select "id", "name", "applied_at" from "_hub_migrations" order by "_hub_migrations"."id"'
-  return (await useDatabaseQuery(env, query).catch((error) => {
-    if (error.response?.status === 500 && error.response?._data?.message.includes('no such table')) {
+  const res = await queryDatabase({ env, url, token, query }).catch((error) => {
+    if (error.response?._data?.message.includes('no such table')) {
       return []
     }
-    throw ''
-  }))?.[0]?.results ?? []
+    throw error.message
+  })
+  if (Array.isArray(res)) {
+    return res[0]?.results ?? []
+  }
+  return res?.results ?? []
 }

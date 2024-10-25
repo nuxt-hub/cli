@@ -13,7 +13,7 @@ import mime from 'mime'
 import prettyBytes from 'pretty-bytes'
 import { setupDotenv } from 'c12'
 import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, getPackageJson, MAX_ASSET_SIZE } from '../utils/index.mjs'
-import { createMigrationsTable, getRemoteMigrations, useDatabaseQuery } from '../utils/database.mjs'
+import { createMigrationsTable, fetchRemoteMigrations, queryDatabase } from '../utils/database.mjs'
 import login from './login.mjs'
 
 export default defineCommand({
@@ -182,19 +182,18 @@ export default defineCommand({
     spinner.succeed(`Deployed ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`)
 
     // Apply migrations
-    const hubModuleConfig = await srcStorage.getItemRaw('hub.config.json')
-    if (!hubModuleConfig.database) {
+    const hubModuleConfig = await srcStorage.getItem('hub.config.json')
+    if (hubModuleConfig.database) {
       const remoteMigrationsSpinner = ora(`Retrieving migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}...`).start()
 
-      await createMigrationsTable(deployEnv)
+      await createMigrationsTable({ env: deployEnv })
 
-      const remoteMigrations = await getRemoteMigrations(deployEnv).catch((error) => {
+      const remoteMigrations = await fetchRemoteMigrations({ env: deployEnv }).catch((error) => {
         remoteMigrationsSpinner.fail(`Could not retrieve migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}.`)
-        if (error) consola.error(error)
+        consola.error(error.message)
+        process.exit(1)
       })
-      remoteMigrationsSpinner.stop()
-      if (!remoteMigrations) process.exit(1)
-      if (!remoteMigrations.length) consola.warn(`No applied migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}.`)
+      remoteMigrationsSpinner.succeed(`Found ${remoteMigrations.length} migration${remoteMigrations.length === 1 ? '' : 's'} on ${colors.blue(linkedProject.slug)}`)
 
       const localMigrations = fileKeys
         .filter(fileKey => {
@@ -213,8 +212,7 @@ export default defineCommand({
       for (const migration of pendingMigrations) {
         const migrationSpinner = ora(`Applying migration ${colors.blue(migration)}...`).start()
 
-        const migrationFile = await srcStorage.getItemRaw(`database:migrations:${migration}.sql`)
-        let query = migrationFile.toString()
+        let query = await srcStorage.getItem(`database:migrations:${migration}.sql`)
 
         if (query.at(-1) !== ';') query += ';' // ensure previous statement ended before running next query
 	      query += `
@@ -222,11 +220,11 @@ export default defineCommand({
         `;
 
         try {
-          await useDatabaseQuery(deployEnv, query)
+          await queryDatabase({ env: deployEnv, query })
         } catch (error) {
           migrationSpinner.fail(`Failed to apply migration ${colors.blue(migration)}.`)
 
-          if (error) consola.error(error.response?._data?.message || error)
+          if (error) consola.error(error.response?._data?.message || error.message)
           break
         }
 
