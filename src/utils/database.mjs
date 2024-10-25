@@ -16,7 +16,7 @@ export async function queryDatabase({ env, url, token, query, params }) {
   })
 }
 
-// Used for localhost or sef-hosted projects
+// Used for localhost or self-hosted projects
 export async function queryRemoteDatabase({ url, token, query, params })  {
   return await $fetch(`${url}/api/_hub/database/query`, {
     method: 'POST',
