@@ -4,7 +4,7 @@ import migrations from './database/migrations.mjs'
 export default defineCommand({
   meta: {
     name: 'database',
-    description: 'Database management commands.',
+    description: 'Manage database migrations.',
   },
   subCommands: {
     migrations

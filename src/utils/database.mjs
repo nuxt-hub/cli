@@ -15,10 +15,7 @@ export const useDatabaseQuery = async (env, query, params) => {
     method: 'POST',
     body: { query, params }
   }).catch((error) => {
-    if (error.response?.status === 400) {
-      throw `NuxtHub database is not enabled on \`${env}\`. Deploy a new version with \`hub.database\` enabled and try again.`
-    }
-    throw error
+    throw error.message
   })
 }
 
@@ -56,7 +53,7 @@ export const getNextMigrationNumber = async () => {
   return (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
 }
 
-export const createMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS hub_migrations (
+export const createMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS _hub_migrations (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT UNIQUE,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
@@ -69,7 +66,7 @@ export const createMigrationsTable = async (env) => {
  * @type {Promise<Array<{ id: number, name: string, applied_at: string }>>}
  */
 export const getRemoteMigrations = async (env) => {
-  const query = 'select "id", "name", "applied_at" from "hub_migrations" order by "hub_migrations"."id"'
+  const query = 'select "id", "name", "applied_at" from "_hub_migrations" order by "_hub_migrations"."id"'
   return (await useDatabaseQuery(env, query).catch((error) => {
     if (error.response?.status === 500 && error.response?._data?.message.includes('no such table')) {
       return []

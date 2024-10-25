@@ -60,7 +60,7 @@ export function generateWrangler(hub) {
       binding: 'DB',
       database_name: 'default',
       database_id: 'default',
-      migrations_table: 'hub_migrations',
+      migrations_table: '_hub_migrations',
       migrations_dir: 'database/migrations'
     }]
   }

@@ -218,7 +218,7 @@ export default defineCommand({
 
         if (query.at(-1) !== ';') query += ';' // ensure previous statement ended before running next query
 	      query += `
-          INSERT INTO hub_migrations (name) values ('${migration}');
+          INSERT INTO _hub_migrations (name) values ('${migration}');
         `;
 
         try {
