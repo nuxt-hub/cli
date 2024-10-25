@@ -51,8 +51,19 @@ export default defineCommand({
 
     // local & self hosted
     if (args.local && process.env.NUXT_HUB_PROJECT_SECRET_KEY) {
-      // call POST localhost:localPort/api/_hub/database/batch with project.userProjectToken
-      consola.success(`Marked all migrations as applied on \`local\`.`)
+      const spinner = ora(`Marking all migrations as applied on ${colors.blue('local')}...`).start()
+
+      try {
+        const options = { hostname: args.nuxtHostname, port: args.nuxtPort, token: process.env.NUXT_HUB_PROJECT_SECRET_KEY }
+        await useLocalDatabaseQuery({ ...options, query: createMigrationsTableQuery })
+        await useLocalDatabaseQuery({ ...options, query })
+      } catch (error) {
+        spinner.fail(`Could not mark all migrations as applied on ${colors.blue('local')}.`)
+        if (error) consola.error(error.response?._data?.message || error)
+        process.exit(1)
+      }
+
+      spinner.succeed(`Marked all migrations as applied on ${colors.blue('local')}.`)
       return process.exit(0)
     }
 
@@ -108,7 +119,7 @@ export default defineCommand({
       const spinner = ora(`Marking all migrations as applied on ${colors.blue('local')}...`).start()
 
       try {
-        const options = { hostname: args.nuxtHostname, port: args.nuxtPort, userProjectToken: project.userProjectToken }
+        const options = { hostname: args.nuxtHostname, port: args.nuxtPort, token: project.userProjectToken }
         await useLocalDatabaseQuery({ ...options, query: createMigrationsTableQuery })
         await useLocalDatabaseQuery({ ...options, query })
       } catch (error) {
@@ -126,11 +137,11 @@ function generateQuery(migrations) {
   return `INSERT OR IGNORE INTO hub_migrations (name) values ${migrations.map((name, i, m) => `('${name}')${i === m.length - 1 ? ';' : ', '}`).join('')}`
 }
 
-export const useLocalDatabaseQuery = async ({hostname, port, userProjectToken, query}) => {
+export const useLocalDatabaseQuery = async ({hostname, port, token, query}) => {
   return await $fetch(`http://${hostname}:${port}/api/_hub/database/query`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${userProjectToken}`
+      Authorization: `Bearer ${token}`
     },
     body: { query }
   })
