@@ -33,7 +33,8 @@ COMMANDS
    login    Authenticate with NuxtHub.                                        
   logout    Logout the current authenticated user.                            
     logs    Display the logs of a deployment.                                 
-  whoami    Shows the username of the currently logged in user.               
+  whoami    Shows the username of the currently logged in user.
+  database    Manage database migrations.               
 
 Use nuxthub <command> --help for more information about a command.
 ```
