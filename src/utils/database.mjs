@@ -52,13 +52,13 @@ export const getNextMigrationNumber = async () => {
   return (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
 }
 
-export const createMigrationsTable = async (env) => {
-  const query = `CREATE TABLE IF NOT EXISTS hub_migrations (
+export const createMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS hub_migrations (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT UNIQUE,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
-  );`
-  await useDatabaseQuery(env, query)
+);`
+export const createMigrationsTable = async (env) => {
+  await useDatabaseQuery(env, createMigrationsTableQuery)
 }
 
 /**
