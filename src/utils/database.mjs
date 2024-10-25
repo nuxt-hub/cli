@@ -5,11 +5,15 @@ import { $api } from './data.mjs'
 
 /**
  * @type {Promise<Array<{ results: Array, success: boolean, meta: object}>>}
+ *
+ * @param {string} env
+ * @param {string} query
+ * @param {string[] | undefined} params
  */
-export const useDatabaseQuery = async (env, query) => {
+export const useDatabaseQuery = async (env, query, params) => {
   return await $api(`/projects/${process.env.NUXT_HUB_PROJECT_KEY}/database/${env}/query`, {
     method: 'POST',
-    body: { query }
+    body: { query, params }
   }).catch((error) => {
     if (error.response?.status === 400) {
       throw `NuxtHub database is not enabled on \`${env}\`. Deploy a new version with \`hub.database\` enabled and try again.`

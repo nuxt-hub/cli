@@ -42,7 +42,7 @@ export default defineCommand({
   },
   async run({ args }) {
     const localMigrations = (await getMigrationFiles()).map(fileName => fileName.replace('.sql', ''))
-    const query = generateQuery(localMigrations)
+    const { query, params } = generateQuery(localMigrations)
 
     // set local as default if no env is provided
     if (!args.production && !args.preview && !args.local) {
@@ -56,7 +56,7 @@ export default defineCommand({
       try {
         const options = { hostname: args.nuxtHostname, port: args.nuxtPort, token: process.env.NUXT_HUB_PROJECT_SECRET_KEY }
         await useLocalDatabaseQuery({ ...options, query: createMigrationsTableQuery })
-        await useLocalDatabaseQuery({ ...options, query })
+        await useLocalDatabaseQuery({ ...options, query, params })
       } catch (error) {
         spinner.fail(`Could not mark all migrations as applied on ${colors.blue('local')}.`)
         if (error) consola.error(error.response?._data?.message || error)
@@ -106,7 +106,7 @@ export default defineCommand({
       const spinner = ora(`Marking all migrations as applied on ${envColored} for ${colors.blue(project.slug)}...`).start()
 
       await createMigrationsTable(env)
-      await useDatabaseQuery(env, query).catch((error) => {
+      await useDatabaseQuery(env, query, params).catch((error) => {
         spinner.fail(`Could not mark all migrations as applied on ${envColored} for ${colors.blue(project.slug)}.`)
         if (error) consola.error(error)
         process.exit(1)
@@ -121,7 +121,7 @@ export default defineCommand({
       try {
         const options = { hostname: args.nuxtHostname, port: args.nuxtPort, token: project.userProjectToken }
         await useLocalDatabaseQuery({ ...options, query: createMigrationsTableQuery })
-        await useLocalDatabaseQuery({ ...options, query })
+        await useLocalDatabaseQuery({ ...options, query, params })
       } catch (error) {
         spinner.fail(`Could not mark all migrations as applied on ${colors.blue('local')}.`)
         if (error) consola.error(error.response?._data?.message || error)
@@ -133,16 +133,22 @@ export default defineCommand({
   }
 });
 
+/**
+ * @param {string[]} migrations
+ */
 function generateQuery(migrations) {
-  return `INSERT OR IGNORE INTO hub_migrations (name) values ${migrations.map((name, i, m) => `('${name}')${i === m.length - 1 ? ';' : ', '}`).join('')}`
+  return {
+    query: `INSERT OR IGNORE INTO hub_migrations (name) values ${migrations.map((_, i, m) => `(?)${i === m.length - 1 ? ';' : ', '}`).join('')}`,
+    params: migrations
+  }
 }
 
-export const useLocalDatabaseQuery = async ({hostname, port, token, query}) => {
+export const useLocalDatabaseQuery = async ({ hostname, port, token, query, params }) => {
   return await $fetch(`http://${hostname}:${port}/api/_hub/database/query`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`
     },
-    body: { query }
+    body: { query, params }
   })
 }
