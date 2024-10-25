@@ -27,7 +27,7 @@ export default defineCommand({
   async run({ args }) {
     let user = await fetchUser()
     if (!user) {
-      consola.info('Please login to open a project in your browser.')
+      consola.info('Please login to list migrations.')
       await runCommand(login, {})
       user = await fetchUser()
     }
