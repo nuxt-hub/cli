@@ -1,9 +1,9 @@
 import { consola } from 'consola'
 import { defineCommand } from 'citty'
 import { readFile, writeFile, unlink } from 'node:fs/promises'
-import { join } from 'pathe'
+import { join, relative } from 'pathe'
 import { execa } from 'execa'
-import { existsSync } from 'fs'
+import { existsSync } from 'node:fs'
 import { loadJsonFile } from 'load-json-file'
 import { generateWrangler } from '../utils/index.mjs'
 
@@ -27,6 +27,17 @@ export default defineCommand({
     const gitignore = await readFile(gitignorePath, 'utf-8').catch(() => '')
     if (gitignore && !gitignore.includes('.wrangler')) {
       await writeFile(gitignorePath, `${gitignore ? gitignore + '\n' : gitignore}.wrangler`, 'utf-8')
+    }
+
+    // Wrangler does not support .env, only a .dev.var
+    // see https://developers.cloudflare.com/pages/functions/bindings/#interact-with-your-secrets-locally
+    const envPath = join(process.cwd(), '.env')
+    let devVarsPath = false
+    if (existsSync(envPath)) {
+      devVarsPath = join(distDir, '.dev.vars')
+      consola.info(`Copying .env to ${relative(process.cwd(), devVarsPath)}...`)
+      const envVars = await readFile(envPath, 'utf-8').catch(() => '')
+      await writeFile(devVarsPath, envVars, 'utf-8')
     }
 
     consola.info('Generating wrangler.toml...')
@@ -54,7 +65,10 @@ export default defineCommand({
         }
         throw err
       })
-    consola.info('Deleting generated wrangler.toml for preview...')
+    consola.info('Cleaning up generated files for preview...')
     await unlink(wranglerPath)
+    if (devVarsPath) {
+      await unlink(devVarsPath)
+    }
   },
 })
