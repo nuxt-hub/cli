@@ -34,16 +34,16 @@ export default defineCommand({
     // see https://developers.cloudflare.com/pages/functions/bindings/#interact-with-your-secrets-locally
     const envPath = join(process.cwd(), '.env')
     const devVarsPath = join(distDir, '.dev.vars')
-    if (existsSync(envPath) && !existsSync(devVarsPath)) {
-      consola.info(`Copying .env to ${relative(process.cwd(), devVarsPath)}...`)
+    if (existsSync(envPath)) {
+      consola.info(`Copying \`.env\` to \`${relative(process.cwd(), devVarsPath)}\`...`)
       const envVars = await readFile(envPath, 'utf-8').catch(() => '')
       await writeFile(devVarsPath, envVars, 'utf-8')
       fileSideEffects.push(devVarsPath)
     }
 
-    consola.info('Generating wrangler.toml...')
     const wrangler = generateWrangler(hubConfig)
     const wranglerPath = join(distDir, 'wrangler.toml')
+    consola.info(`Generating \`${relative(process.cwd(), wranglerPath)}\`...`)
     fileSideEffects.push(wranglerPath)
     await writeFile(wranglerPath, wrangler)
     const options = { stdin: 'inherit', stdout: 'inherit', cwd: distDir, preferLocal: true, localDir: process.cwd() }
