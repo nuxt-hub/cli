@@ -30,7 +30,7 @@ export default defineCommand({
     }
 
     const fileSideEffects = []
-    // Wrangler does not support .env, only a .dev.var
+    // Wrangler does not support .env, only a .dev.vars
     // see https://developers.cloudflare.com/pages/functions/bindings/#interact-with-your-secrets-locally
     const envPath = join(process.cwd(), '.env')
     const devVarsPath = join(distDir, '.dev.vars')
