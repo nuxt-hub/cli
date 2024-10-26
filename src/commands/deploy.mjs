@@ -131,6 +131,7 @@ export default defineCommand({
       if (fileKey.startsWith('.wrangler:')) return false
       if (fileKey.startsWith('node_modules:')) return false
       if (fileKey === 'wrangler.toml') return false
+      if (fileKey === '.dev.vars') return false
       if (fileKey.startsWith('database:migrations:')) return false
       return true
     })
