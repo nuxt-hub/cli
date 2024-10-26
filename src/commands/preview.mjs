@@ -29,20 +29,22 @@ export default defineCommand({
       await writeFile(gitignorePath, `${gitignore ? gitignore + '\n' : gitignore}.wrangler`, 'utf-8')
     }
 
+    const fileSideEffects = []
     // Wrangler does not support .env, only a .dev.var
     // see https://developers.cloudflare.com/pages/functions/bindings/#interact-with-your-secrets-locally
     const envPath = join(process.cwd(), '.env')
-    let devVarsPath = false
-    if (existsSync(envPath)) {
-      devVarsPath = join(distDir, '.dev.vars')
+    const devVarsPath = join(distDir, '.dev.vars')
+    if (existsSync(envPath) && !existsSync(devVarsPath)) {
       consola.info(`Copying .env to ${relative(process.cwd(), devVarsPath)}...`)
       const envVars = await readFile(envPath, 'utf-8').catch(() => '')
       await writeFile(devVarsPath, envVars, 'utf-8')
+      fileSideEffects.push(devVarsPath)
     }
 
     consola.info('Generating wrangler.toml...')
     const wrangler = generateWrangler(hubConfig)
     const wranglerPath = join(distDir, 'wrangler.toml')
+    fileSideEffects.push(wranglerPath)
     await writeFile(wranglerPath, wrangler)
     const options = { stdin: 'inherit', stdout: 'inherit', cwd: distDir, preferLocal: true, localDir: process.cwd() }
     if (hubConfig.database && existsSync(join(distDir, 'database/migrations'))) {
@@ -66,9 +68,6 @@ export default defineCommand({
         throw err
       })
     consola.info('Cleaning up generated files for preview...')
-    await unlink(wranglerPath)
-    if (devVarsPath) {
-      await unlink(devVarsPath)
-    }
+    await Promise.all(fileSideEffects.map(unlink))
   },
 })
