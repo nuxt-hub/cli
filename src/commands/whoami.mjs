@@ -15,6 +15,8 @@ export default defineCommand({
       consola.warn("To login, run `nuxthub login`");
       return;
     }
-    consola.info(`Logged in as ${colors.blue(user.name)}`)
+    consola.info(`Logged in as ${colors.blue(user.name)}`);
+    consola.info(`Account: ${colors.blue(user.email)}`);
+    consola.info(`Avatar URL: ${colors.blue(user.avatar)}`);
   },
 })
