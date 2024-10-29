@@ -18,10 +18,15 @@ export async function queryDatabase({ env, url, token, query, params }) {
 
 // Used for localhost or self-hosted projects
 export async function queryRemoteDatabase({ url, token, query, params })  {
+  const cloudflareAccessHeaders = process.env.NUXT_HUB_CLOUDFLARE_ACCESS_CLIENT_ID && process.env.NUXT_HUB_CLOUDFLARE_ACCESS_CLIENT_SECRET ? {
+    'CF-Access-Client-Id': process.env.NUXT_HUB_CLOUDFLARE_ACCESS_CLIENT_ID,
+    'CF-Access-Client-Secret': process.env.NUXT_HUB_CLOUDFLARE_ACCESS_CLIENT_SECRET
+  } : undefined
   return await $fetch(`${url}/api/_hub/database/query`, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${token}`,
+      ...cloudflareAccessHeaders
     },
     body: { query, params }
   }).catch((error) => {
