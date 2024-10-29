@@ -12,7 +12,7 @@ export default defineCommand({
     const user = await fetchUser()
     if (!user) {
       consola.warn("Not currently logged in.");
-      consola.warn("To login, run `nuxthub login`");
+      consola.info("To login, run `nuxthub login`");
       return;
     }
     consola.info(`Logged in as ${colors.blue(user.name)}`);
