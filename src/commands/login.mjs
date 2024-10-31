@@ -72,7 +72,12 @@ export default defineCommand({
         showURL: false,
         port: randomPort
       })
-      const authUrl = withQuery(joinURL(NUXT_HUB_URL, '/api/cli/authorize'), { redirect: listener.url })
+      let redirect = listener.url
+      // if running inside GitHub Codespace
+      if (process.env.CODESPACE_NAME && process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN) {
+        redirect = `https://${process.env.CODESPACE_NAME}-${randomPort}.${process.env.GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN}`
+      }
+      const authUrl = withQuery(joinURL(NUXT_HUB_URL, '/api/cli/authorize'), { redirect })
       consola.info('Please visit the following URL in your web browser:')
       consola.info(`\`${authUrl}\``)
       consola.info('Waiting for authentication to be completed...')
