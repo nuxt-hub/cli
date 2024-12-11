@@ -2,8 +2,20 @@ import { stringifyTOML } from 'confbox'
 
 // Taken from https://github.com/nuxt-hub/core/blob/main/src/utils/wrangler.ts
 // With some modifications to fit the needs of this project
-export function generateWrangler(hub) {
+export function generateWrangler(hub, nitro) {
   const wrangler = {}
+
+  // Workers specific settings
+  if (nitro.preset === 'cloudflare-module' || nitro.preset === 'cloudflare-durable') {
+    wrangler.name = 'nuxthub-local-preview'
+    wrangler.main = './server/index.mjs'
+    wrangler.assets = { directory: './public/', binding: 'ASSETS' }
+    if (nitro.preset === 'cloudflare-durable') {
+      wrangler.durable_objects ||= {}
+      wrangler.durable_objects.bindings = [{ name: '$DurableObject', class_name: '$DurableObject' }]
+      wrangler.migrations = [{ tag: 'v1', new_classes: ['$DurableObject'] }]
+    }
+  }
 
   if (hub.bindings?.compatibilityFlags) {
     wrangler['compatibility_flags'] = hub.bindings.compatibilityFlags

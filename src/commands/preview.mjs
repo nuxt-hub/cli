@@ -21,6 +21,7 @@ export default defineCommand({
       consola.error(`Production build not found, please run \`npx nuxt build\``)
       process.exit(1)
     }
+    const nitroConfig = await loadJsonFile(join(distDir, 'nitro.json')).catch(() => null)
 
     // Add .wrangler to .gitignore
     const gitignorePath = join(process.cwd(), '.gitignore')
@@ -41,7 +42,7 @@ export default defineCommand({
       fileSideEffects.push(devVarsPath)
     }
 
-    const wrangler = generateWrangler(hubConfig)
+    const wrangler = generateWrangler(hubConfig, nitroConfig)
     const wranglerPath = join(distDir, 'wrangler.toml')
     consola.info(`Generating \`${relative(process.cwd(), wranglerPath)}\`...`)
     fileSideEffects.push(wranglerPath)
@@ -58,15 +59,23 @@ export default defineCommand({
         throw err
       })
     }
-    consola.info('Starting `wrangler pages dev` command...')
-    await execa(options)`wrangler pages dev .`
-      .catch((err) => {
-        if (err.code === 'ENOENT') {
-          consola.error('`wrangler` is not installed, please make sure that you installed it with `npx nypm i -D wrangler`')
-          process.exit(1)
-        }
-        throw err
-      })
+    const cmdError = (err) => {
+      if (err.code === 'ENOENT') {
+        consola.error('`wrangler` is not installed, please make sure that you installed it with `npx nypm i -D wrangler`')
+        process.exit(1)
+      }
+      throw err
+    }
+    if (nitroConfig.preset === 'cloudflare-pages') {
+      consola.info(`Starting \`wrangler pages dev .\` command...`)
+      await execa(options)`wrangler pages dev .`
+        .catch(cmdError)
+    } else {
+      consola.info(`Starting \`wrangler dev\` command...`)
+      await execa(options)`wrangler dev`
+        .catch(cmdError)
+    }
+
     consola.info('Cleaning up generated files for preview...')
     await Promise.all(fileSideEffects.map(unlink))
   },
