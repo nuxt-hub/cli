@@ -34,8 +34,8 @@ export function withTilde(path) {
   return path.replace(homedir(), '~')
 }
 
-export async function getPackageJson() {
-  const path = join(process.cwd(), 'package.json')
+export async function getPackageJson(cwd) {
+  const path = join(cwd || process.cwd(), 'package.json')
   return JSON.parse(await readFile(path, 'utf-8'))
 }
 

@@ -4,7 +4,7 @@ import { colors } from 'consola/utils'
 import { isCancel, confirm } from '@clack/prompts'
 import { defineCommand, runCommand } from 'citty'
 import { joinURL } from 'ufo'
-import { join } from 'pathe'
+import { join, resolve, relative } from 'pathe'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import { execa } from 'execa'
@@ -22,6 +22,12 @@ export default defineCommand({
     description: 'Deploy your project to NuxtHub.',
   },
   args: {
+    cwd: {
+      type: 'positional',
+      description: 'The directory to build and deploy.',
+      required: false,
+      default: '.'
+    },
     build: {
       type: 'boolean',
       description: 'Build the project before deploying.',
@@ -44,12 +50,19 @@ export default defineCommand({
     }
   },
   async run({ args }) {
-    const cwd = process.cwd()
+    const cmdCwd = process.cwd()
+    const cwd = resolve(cmdCwd, args.cwd)
     if (args.dotenv) {
       consola.info(`Loading env from \`${args.dotenv}\``)
       await setupDotenv({
         cwd,
         fileName: args.dotenv
+      })
+    } else if (cwd !== cmdCwd) {
+      consola.info(`Loading env from \`${relative(cmdCwd, cwd)}/.env\``)
+      await setupDotenv({
+        cwd,
+        fileName: '.env'
       })
     }
     let user = await fetchUser()
@@ -95,7 +108,7 @@ export default defineCommand({
 
     if (args.build) {
       consola.info('Building the Nuxt project...')
-      const pkg = await getPackageJson()
+      const pkg = await getPackageJson(cwd)
       const deps = Object.assign({}, pkg.dependencies, pkg.devDependencies)
       if (!deps['@nuxthub/core']) {
         consola.error('`@nuxthub/core` is not installed, make sure to install it with `npx nuxt module add hub`')
@@ -105,7 +118,7 @@ export default defineCommand({
       if (args.dotenv) {
         nuxiBuildArgs.push(`--dotenv=${args.dotenv}`)
       }
-      await execa('./node_modules/.bin/nuxi', ['build', ...nuxiBuildArgs], { stdio: 'inherit' })
+      await execa({ stdio: 'inherit', preferLocal: true })`nuxi build ${nuxiBuildArgs}`
         .catch((err) => {
           if (err.code === 'ENOENT') {
             consola.error('`nuxt` is not installed, please make sure that you are inside a Nuxt project.')
