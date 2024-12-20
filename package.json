@@ -21,13 +21,13 @@
     "release": "release-it"
   },
   "dependencies": {
-    "@clack/prompts": "^0.8.2",
+    "@clack/prompts": "^0.9.0",
     "blake3-wasm": "^2.1.5",
     "c12": "^2.0.1",
     "ci-info": "^4.1.0",
     "citty": "^0.1.6",
     "confbox": "^0.1.8",
-    "consola": "^3.2.3",
+    "consola": "^3.3.0",
     "dns2": "^2.1.0",
     "dotenv": "^16.4.7",
     "execa": "^9.5.2",
@@ -35,7 +35,7 @@
     "h3": "^1.13.0",
     "listhen": "^1.9.0",
     "load-json-file": "^7.0.1",
-    "mime": "^4.0.4",
+    "mime": "^4.0.6",
     "ofetch": "^1.4.1",
     "open": "^10.1.0",
     "ora": "^8.1.1",
@@ -44,12 +44,12 @@
     "rc9": "^2.1.2",
     "signal-exit": "^4.1.0",
     "ufo": "^1.5.4",
-    "unstorage": "^1.13.1",
+    "unstorage": "^1.14.1",
     "update-notifier": "^7.3.1",
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@nuxt/eslint-config": "^0.7.3",
+    "@nuxt/eslint-config": "^0.7.4",
     "eslint": "^9.17.0",
     "release-it": "^17.10.0"
   },
@@ -62,5 +62,5 @@
       "releaseName": "v${version}"
     }
   },
-  "packageManager": "pnpm@9.15.0"
+  "packageManager": "pnpm@9.15.1"
 }
