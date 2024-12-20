@@ -25,6 +25,8 @@ export function generateWrangler(hub, nitro) {
 
   if (hub.bindings?.compatibilityDate) {
     wrangler['compatibility_date'] = hub.bindings.compatibilityDate
+  } else {
+    wrangler['compatibility_date'] = new Date().toISOString().split('T')[0]
   }
 
   if (hub.ai) {
