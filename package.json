@@ -10,7 +10,10 @@
   ],
   "repo": "nuxt-hub/cli",
   "type": "module",
-  "bin": "./src/index.mjs",
+  "bin": {
+    "nuxthub": "./src/index.mjs",
+    "nuxt-hub": "./src/index.mjs"
+  },
   "files": [
     "src/"
   ],
