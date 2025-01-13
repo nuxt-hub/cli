@@ -25,7 +25,6 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.9.0",
-    "blake3-wasm": "^2.1.5",
     "c12": "^2.0.1",
     "ci-info": "^4.1.0",
     "citty": "^0.1.6",

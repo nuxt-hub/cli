@@ -12,6 +12,7 @@ import { existsSync } from 'fs'
 import mime from 'mime'
 import prettyBytes from 'pretty-bytes'
 import { setupDotenv } from 'c12'
+import { ofetch } from 'ofetch'
 import { $api, fetchUser, selectTeam, selectProject, projectPath, withTilde, fetchProject, linkProject, hashFile, gitInfo, getPackageJson, MAX_ASSET_SIZE } from '../utils/index.mjs'
 import { createMigrationsTable, fetchRemoteMigrations, queryDatabase } from '../utils/database.mjs'
 import login from './login.mjs'
@@ -148,43 +149,156 @@ export default defineCommand({
       if (fileKey.startsWith('database:migrations:')) return false
       return true
     })
-    if (!filesToDeploy.find(key => key === 'hub.config.json')) {
-      consola.error('`dist/hub.config.json` is missing, please make that `@nuxthub/core` is enabled in your `nuxt.config.ts`.')
-      process.exit(1)
-    }
-    const files = await Promise.all(filesToDeploy.map(async (fileKey) => {
-      const data = await srcStorage.getItemRaw(fileKey)
-      const filepath = fileKey.replace(/:/g, '/')
-      const fileContentBase64 = data.toString('base64')
 
-      if (data.size > MAX_ASSET_SIZE) {
-        console.error(`NuxtHub deploy only supports files up to ${prettyBytes(MAX_ASSET_SIZE, { binary: true })} in size\n${withTilde(filepath)} is ${prettyBytes(data.size, { binary: true })} in size`)
-        process.exit(1)
-      }
+    const SPECIAL_FILES = [
+      '_redirects',
+      '_headers',
+      '_routes.json',
+      'nitro.json',
+      'hub.config.json'
+    ]
 
-      return {
-        path: joinURL('/', filepath),
-        key: hashFile(filepath, fileContentBase64),
-        value: fileContentBase64,
-        base64: true,
-        metadata: {
-          contentType: mime.getType(filepath) || 'application/octet-stream'
+    const specialFilesMetadata = await Promise.all(
+      filesToDeploy.map(async (fileKey) => {
+        const filepath = fileKey.replace(/:/g, '/')
+        const isSpecialFile = SPECIAL_FILES.includes(filepath) || filepath.startsWith('_worker.js/')
+
+        const data = await srcStorage.getItemRaw(fileKey)
+        const fileContentBase64 = data.toString('base64')
+
+        if (!isSpecialFile) {
+          return {
+            path: joinURL('/', filepath),
+            key: hashFile(filepath, fileContentBase64)
+          }
         }
-      }
-    }))
-    // TODO: make a tar with nanotar by the amazing Pooya Parsa (@pi0)
+
+        if (data.size > MAX_ASSET_SIZE) {
+          console.error(`NuxtHub deploy only supports files up to ${prettyBytes(MAX_ASSET_SIZE, { binary: true })} in size\n${withTilde(filepath)} is ${prettyBytes(data.size, { binary: true })} in size`)
+          process.exit(1)
+        }
+
+        return {
+          path: joinURL('/', filepath),
+          key: hashFile(filepath, fileContentBase64),
+          value: fileContentBase64,
+          base64: true,
+          metadata: {
+            contentType: mime.getType(filepath) || 'application/octet-stream'
+          }
+        }
+      })
+    )
 
     const spinner = ora(`Deploying ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`).start()
     setTimeout(() => spinner.color = 'magenta', 2500)
     setTimeout(() => spinner.color = 'blue', 5000)
     setTimeout(() => spinner.color = 'yellow', 7500)
-    const deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/deploy`, {
-      method: 'POST',
-      body: {
-        git,
-        files
+
+    let deployment
+    try {
+      const deploymentInfo = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/deploy`, {
+        method: 'POST',
+        headers: { 'X-NuxtHub-Api-Version': '2025-01-08' },
+        body: {
+          git,
+          files: specialFilesMetadata,
+        }
+      })
+      const { missingHashes, cloudflareUploadJwt, deploymentKey } = deploymentInfo
+
+      const getFileContent = async (fileKey) => {
+        const data = await srcStorage.getItemRaw(fileKey)
+        const filepath = fileKey.replace(/:/g, '/')
+        const fileContentBase64 = data.toString('base64')
+
+        if (data.size > MAX_ASSET_SIZE) {
+          throw new Error(`File ${withTilde(filepath)} exceeds size limit of ${prettyBytes(MAX_ASSET_SIZE, { binary: true })}`)
+        }
+
+        return {
+          path: joinURL('/', filepath),
+          key: hashFile(filepath, fileContentBase64),
+          value: fileContentBase64,
+          base64: true,
+          metadata: {
+            contentType: mime.getType(filepath) || 'application/octet-stream'
+          }
+        }
       }
-    }).catch((err) => {
+
+      const filesToUpload = filesToDeploy.filter(fileKey => {
+        const filepath = fileKey.replace(/:/g, '/')
+        const existingFile = specialFilesMetadata.find(f => f.path === joinURL('/', filepath))
+        return missingHashes.includes(existingFile.key)
+      })
+
+      // Create chunks based on base64 size
+      const MAX_CHUNK_SIZE = 50 * 1024 * 1024 // 50MiB chunk size (in bytes)
+
+      const createChunks = async (files) => {
+        const chunks = []
+        let currentChunk = []
+        let currentSize = 0
+
+        for (const fileKey of files) {
+          const fileContent = await getFileContent(fileKey)
+          const fileSize = Buffer.byteLength(fileContent.value, 'base64')
+
+          // If single file is bigger than chunk size, it gets its own chunk
+          if (fileSize > MAX_CHUNK_SIZE) {
+            // If we have accumulated files, push them as a chunk first
+            if (currentChunk.length > 0) {
+              chunks.push(currentChunk)
+              currentChunk = []
+              currentSize = 0
+            }
+            // Push large file as its own chunk
+            chunks.push([fileContent])
+            continue
+          }
+
+          if (currentSize + fileSize > MAX_CHUNK_SIZE && currentChunk.length > 0) {
+            chunks.push(currentChunk)
+            currentChunk = []
+            currentSize = 0
+          }
+
+          currentChunk.push(fileContent)
+          currentSize += fileSize
+        }
+
+        if (currentChunk.length > 0) {
+          chunks.push(currentChunk)
+        }
+
+        return chunks
+      }
+
+      // Upload assets to Cloudflare with max concurrent uploads
+      const CONCURRENT_UPLOADS = 3
+      const chunks = await createChunks(filesToUpload)
+
+      for (let i = 0; i < chunks.length; i += CONCURRENT_UPLOADS) {
+        const chunkGroup = chunks.slice(i, i + CONCURRENT_UPLOADS)
+        await Promise.all(chunkGroup.map(async (files) => {
+          return ofetch('/pages/assets/upload', {
+            baseURL: 'https://api.cloudflare.com/client/v4/',
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${cloudflareUploadJwt}`
+            },
+            body: files
+          })
+        }))
+      }
+
+      deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/deploy/done`, {
+        method: 'POST',
+        headers: { 'X-NuxtHub-Api-Version': '2025-01-08' },
+        body: { deploymentKey },
+      })
+    } catch (err) {
       spinner.fail(`Failed to deploy ${colors.blue(linkedProject.slug)} to ${deployEnvColored}.`)
       // Error with workers size limit
       if (err.data?.data?.name === 'ZodError') {
@@ -196,7 +310,8 @@ export default defineCommand({
         consola.error(err.message.split(' - ')[1] || err.message)
       }
       process.exit(1)
-    })
+    }
+
     spinner.succeed(`Deployed ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`)
 
     // Apply migrations
