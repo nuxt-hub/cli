@@ -1,11 +1,8 @@
 import { createHash } from 'node:crypto'
-import { extname } from 'pathe'
 
-export function hashFile(filepath, base64) {
-  const extension = extname(filepath).substring(1)
-
+export function hashFile(data) {
   return createHash('sha256')
-    .update(base64 + extension)
+    .update(data)
     .digest('hex')
-    .slice(0, 32)
+    .slice(0, 32) // required by Cloudflare
 }

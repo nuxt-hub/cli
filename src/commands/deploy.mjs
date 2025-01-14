@@ -93,16 +93,18 @@ export default defineCommand({
       linkedProject = await fetchProject()
     }
     const git = gitInfo()
-    if (args.production) {
-      git.branch = linkedProject.productionBranch || 'main'
-    } else if (args.preview) {
-      // Set branch as "preview", except if someone decided to set the production branch as "preview"
-      git.branch = linkedProject.productionBranch === 'preview' ? 'force_preview' : 'preview'
-    }
-
     // Default to main branch
     git.branch = git.branch || 'main'
-    const deployEnv = git.branch === linkedProject.productionBranch ? 'production' : 'preview'
+    let deployEnv = git.branch === linkedProject.productionBranch ? 'production' : 'preview'
+    if (args.production) {
+      git.branch = linkedProject.productionBranch
+      deployEnv = 'production'
+    } else if (args.preview) {
+      if (git.branch === linkedProject.productionBranch) {
+        git.branch += '-preview'
+      }
+      deployEnv = 'preview'
+    }
     const deployEnvColored = deployEnv === 'production' ? colors.green(deployEnv) : colors.yellow(deployEnv)
     consola.success(`Connected to ${colors.blue(linkedProject.teamSlug)} team.`)
     consola.success(`Linked to ${colors.blue(linkedProject.slug)} project.`)
@@ -134,119 +136,91 @@ export default defineCommand({
       consola.error(`${colors.cyan(withTilde(distDir))} directory not found, please make sure that you have built your project.`)
       process.exit(1)
     }
-    const srcStorage = createStorage({
+    const distStorage = createStorage({
       driver: fsDriver({
         base: distDir,
         ignore: ['.DS_Store']
       }),
     })
-    const fileKeys = await srcStorage.getKeys()
-    const filesToDeploy = fileKeys.filter(fileKey => {
-      if (fileKey.startsWith('.wrangler:')) return false
-      if (fileKey.startsWith('node_modules:')) return false
-      if (fileKey === 'wrangler.toml') return false
-      if (fileKey === '.dev.vars') return false
-      if (fileKey.startsWith('database:migrations:')) return false
+    const getFile = async (path, encoding = 'utf-8') => {
+      const dataAsBuffer = await distStorage.getItemRaw(path)
+      if (dataAsBuffer.length > MAX_ASSET_SIZE) {
+        console.error(`NuxtHub deploy only supports files up to ${prettyBytes(MAX_ASSET_SIZE, { binary: true })} in size\n${withTilde(path)} is ${prettyBytes(dataAsBuffer.size, { binary: true })} in size`)
+        process.exit(1)
+      }
+      const data = dataAsBuffer.toString(encoding)
+      return {
+        path,
+        data,
+        size: dataAsBuffer.length,
+        encoding,
+        hash: hashFile(data),
+        contentType: mime.getType(path) || 'application/octet-stream'
+      }
+    }
+    const fileKeys = await distStorage.getKeys()
+    const fileKeyToPath = (fileKey) => joinURL('/', fileKey.replace(/:/g, '/'))
+    const pathsToDeploy = fileKeys.map(fileKeyToPath).filter(path => {
+      if (path.startsWith('/.wrangler/')) return false
+      if (path.startsWith('/node_modules/')) return false
+      if (path === '/wrangler.toml') return false
+      if (path === '/.dev.vars') return false
+      if (path.startsWith('/database/migrations/')) return false
       return true
     })
 
-    const SPECIAL_FILES = [
-      '_redirects',
-      '_headers',
-      '_routes.json',
-      'nitro.json',
-      'hub.config.json'
+    const META_PATHS = [
+      '/_redirects',
+      '/_headers',
+      '/_routes.json',
+      '/nitro.json',
+      '/hub.config.json',
+      '/wrangler.toml',
     ]
+    const isMetaPath = (path) => META_PATHS.includes(path)
+    const isServerPath = (path) => path.startsWith('/_worker.js/')
+    const isPublicPath = (path) => !isMetaPath(path) && !isServerPath(path)
 
-    const specialFilesMetadata = await Promise.all(
-      filesToDeploy.map(async (fileKey) => {
-        const filepath = fileKey.replace(/:/g, '/')
-        const isSpecialFile = SPECIAL_FILES.includes(filepath) || filepath.startsWith('_worker.js/')
-
-        const data = await srcStorage.getItemRaw(fileKey)
-        const fileContentBase64 = data.toString('base64')
-
-        if (!isSpecialFile) {
-          return {
-            path: joinURL('/', filepath),
-            key: hashFile(filepath, fileContentBase64)
-          }
-        }
-
-        if (data.size > MAX_ASSET_SIZE) {
-          console.error(`NuxtHub deploy only supports files up to ${prettyBytes(MAX_ASSET_SIZE, { binary: true })} in size\n${withTilde(filepath)} is ${prettyBytes(data.size, { binary: true })} in size`)
-          process.exit(1)
-        }
-
-        return {
-          path: joinURL('/', filepath),
-          key: hashFile(filepath, fileContentBase64),
-          value: fileContentBase64,
-          base64: true,
-          metadata: {
-            contentType: mime.getType(filepath) || 'application/octet-stream'
-          }
-        }
-      })
-    )
-
-    const spinner = ora(`Deploying ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`).start()
+    const spinner = ora(`Preparing ${colors.blue(linkedProject.slug)} deployment to ${deployEnvColored}...`).start()
     setTimeout(() => spinner.color = 'magenta', 2500)
     setTimeout(() => spinner.color = 'blue', 5000)
     setTimeout(() => spinner.color = 'yellow', 7500)
 
     let deployment
     try {
-      const deploymentInfo = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/deploy`, {
+      const config = await distStorage.getItem('hub.config.json')
+      const publicFiles = await Promise.all(pathsToDeploy.filter(isPublicPath).map(p => getFile(p, 'base64')))
+      const deploymentInfo = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/prepare`, {
         method: 'POST',
-        headers: { 'X-NuxtHub-Api-Version': '2025-01-08' },
         body: {
-          git,
-          files: specialFilesMetadata,
+          config,
+          /**
+           * Public manifest is a map of file paths to their unique hash (SHA256 sliced to 32 characters).
+           * @example
+           * {
+           *   "/index.html": "hash",
+           *   "/assets/image.png": "hash"
+           * }
+           */
+          publicManifest: publicFiles.reduce((acc, file) => {
+            acc[file.path] = file.hash
+            return acc
+          }, {})
         }
       })
-      const { missingHashes, cloudflareUploadJwt, deploymentKey } = deploymentInfo
-
-      const getFileContent = async (fileKey) => {
-        const data = await srcStorage.getItemRaw(fileKey)
-        const filepath = fileKey.replace(/:/g, '/')
-        const fileContentBase64 = data.toString('base64')
-
-        if (data.size > MAX_ASSET_SIZE) {
-          throw new Error(`File ${withTilde(filepath)} exceeds size limit of ${prettyBytes(MAX_ASSET_SIZE, { binary: true })}`)
-        }
-
-        return {
-          path: joinURL('/', filepath),
-          key: hashFile(filepath, fileContentBase64),
-          value: fileContentBase64,
-          base64: true,
-          metadata: {
-            contentType: mime.getType(filepath) || 'application/octet-stream'
-          }
-        }
-      }
-
-      const filesToUpload = filesToDeploy.filter(fileKey => {
-        const filepath = fileKey.replace(/:/g, '/')
-        const existingFile = specialFilesMetadata.find(f => f.path === joinURL('/', filepath))
-        return missingHashes.includes(existingFile.key)
-      })
+      const { deploymentKey, missingPublicHashes, cloudflareUploadJwt } = deploymentInfo
+      console.log('missingPublicHashes', missingPublicHashes)
 
       // Create chunks based on base64 size
       const MAX_CHUNK_SIZE = 50 * 1024 * 1024 // 50MiB chunk size (in bytes)
-
       const createChunks = async (files) => {
         const chunks = []
         let currentChunk = []
         let currentSize = 0
 
-        for (const fileKey of files) {
-          const fileContent = await getFileContent(fileKey)
-          const fileSize = Buffer.byteLength(fileContent.value, 'base64')
-
+        for (const file of files) {
           // If single file is bigger than chunk size, it gets its own chunk
-          if (fileSize > MAX_CHUNK_SIZE) {
+          if (file.size > MAX_CHUNK_SIZE) {
             // If we have accumulated files, push them as a chunk first
             if (currentChunk.length > 0) {
               chunks.push(currentChunk)
@@ -254,18 +228,18 @@ export default defineCommand({
               currentSize = 0
             }
             // Push large file as its own chunk
-            chunks.push([fileContent])
+            chunks.push([file])
             continue
           }
 
-          if (currentSize + fileSize > MAX_CHUNK_SIZE && currentChunk.length > 0) {
+          if (currentSize + file.size > MAX_CHUNK_SIZE && currentChunk.length > 0) {
             chunks.push(currentChunk)
             currentChunk = []
             currentSize = 0
           }
 
-          currentChunk.push(fileContent)
-          currentSize += fileSize
+          currentChunk.push(file)
+          currentSize += file.size
         }
 
         if (currentChunk.length > 0) {
@@ -277,29 +251,50 @@ export default defineCommand({
 
       // Upload assets to Cloudflare with max concurrent uploads
       const CONCURRENT_UPLOADS = 3
-      const chunks = await createChunks(filesToUpload)
+      const publicFilesToUpload = publicFiles.filter(file => missingPublicHashes.includes(file.hash))
+      const chunks = await createChunks(publicFilesToUpload)
 
       for (let i = 0; i < chunks.length; i += CONCURRENT_UPLOADS) {
         const chunkGroup = chunks.slice(i, i + CONCURRENT_UPLOADS)
-        await Promise.all(chunkGroup.map(async (files) => {
+        if (chunks.length > 1) {
+          spinner.text = `Uploading (${i + 1}/${chunks.length})...`
+        }
+        await Promise.all(chunkGroup.map(async (filesInChunk) => {
           return ofetch('/pages/assets/upload', {
             baseURL: 'https://api.cloudflare.com/client/v4/',
             method: 'POST',
             headers: {
               Authorization: `Bearer ${cloudflareUploadJwt}`
             },
-            body: files
+            // transform to Cloudflare format
+            body: filesInChunk.map(file => ({
+              path: file.path,
+              key: file.hash,
+              value: file.data,
+              base64: true,
+              metadata: {
+                contentType: file.contentType
+              }
+            }))
           })
         }))
       }
 
-      deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/deploy/done`, {
+      spinner.text = `Deploying ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`
+      const serverFiles = await Promise.all(pathsToDeploy.filter(isServerPath).map(p => getFile(p, 'utf-8')))
+      const metaFiles = await Promise.all(pathsToDeploy.filter(isMetaPath).map(p => getFile(p, 'utf-8')))
+      deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/complete`, {
         method: 'POST',
-        headers: { 'X-NuxtHub-Api-Version': '2025-01-08' },
-        body: { deploymentKey },
+        body: {
+          deploymentKey,
+          git,
+          serverFiles,
+          metaFiles
+        },
       })
     } catch (err) {
       spinner.fail(`Failed to deploy ${colors.blue(linkedProject.slug)} to ${deployEnvColored}.`)
+      console.log('err', err)
       // Error with workers size limit
       if (err.data?.data?.name === 'ZodError') {
         consola.error(err.data.data.issues)
@@ -315,7 +310,7 @@ export default defineCommand({
     spinner.succeed(`Deployed ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`)
 
     // Apply migrations
-    const hubModuleConfig = await srcStorage.getItem('hub.config.json')
+    const hubModuleConfig = await distStorage.getItem('hub.config.json')
     if (hubModuleConfig.database) {
       const remoteMigrationsSpinner = ora(`Retrieving migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}...`).start()
 
@@ -345,7 +340,7 @@ export default defineCommand({
       for (const migration of pendingMigrations) {
         const migrationSpinner = ora(`Applying migration ${colors.blue(migration)}...`).start()
 
-        let query = await srcStorage.getItem(`database:migrations:${migration}.sql`)
+        let query = await distStorage.getItem(`database/migrations/${migration}.sql`)
 
         if (query.at(-1) !== ';') query += ';' // ensure previous statement ended before running next query
 	      query += `
