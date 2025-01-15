@@ -23,7 +23,7 @@ export default defineCommand({
       return
     }
     const shouldUnlink = await confirm({
-      message: `Do you want to unlink ${colors.blue(projectPath())} from NuxtHub project ${colors.blue(project.slug)}?`,
+      message: `Do you want to unlink ${colors.blueBright(projectPath())} from NuxtHub project ${colors.blueBright(project.slug)}?`,
       initialValue: false
     })
     if (!shouldUnlink || isCancel(shouldUnlink)) {
@@ -32,6 +32,6 @@ export default defineCommand({
 
     await unlinkProject()
 
-    consola.success(`Project ${colors.blue(project.slug)} unlinked.`)
+    consola.success(`Project ${colors.blueBright(project.slug)} unlinked.`)
   },
 })

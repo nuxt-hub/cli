@@ -35,7 +35,7 @@ export default defineCommand({
 
     let project = await fetchProject()
     if (!project) {
-      consola.warn(`${colors.blue(projectPath())} is not linked to any NuxtHub project.`)
+      consola.warn(`${colors.blueBright(projectPath())} is not linked to any NuxtHub project.`)
 
       await runCommand(link, {})
       project = await fetchProject()
@@ -44,13 +44,13 @@ export default defineCommand({
       }
     }
     const env = getProjectEnv(project, args)
-    const envColored = env === 'production' ? colors.green(env) : colors.yellow(env)
+    const envColored = env === 'production' ? colors.greenBright(env) : colors.yellowBright(env)
     const url = (env === 'production' ? project.url : project.previewUrl)
     if (!url) {
       consola.info(`No deployment found for ${envColored} environment.`)
       return consola.info(`Please run \`nuxthub deploy --${env}\` to deploy your project.`)
     }
-    consola.success(`Linked to ${colors.blue(project.slug)} project available at \`${url}\``)
+    consola.success(`Linked to ${colors.blueBright(project.slug)} project available at \`${url}\``)
 
     const spinner = ora(`Connecting to ${envColored} deployment...`).start()
 

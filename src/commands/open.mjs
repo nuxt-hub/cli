@@ -32,7 +32,7 @@ export default defineCommand({
     }
     let project = await fetchProject()
     if (!project) {
-      consola.warn(`${colors.blue(projectPath())} is not linked to any NuxtHub project.`)
+      consola.warn(`${colors.blueBright(projectPath())} is not linked to any NuxtHub project.`)
 
       await runCommand(link, {})
       project = await fetchProject()
@@ -42,12 +42,12 @@ export default defineCommand({
     }
     // Get the environment based on branch
     const env = getProjectEnv(project, args)
-    const envColored = env === 'production' ? colors.green(env) : colors.yellow(env)
+    const envColored = env === 'production' ? colors.greenBright(env) : colors.yellowBright(env)
     const url = (env === 'production' ? project.url : project.previewUrl)
-    consola.info(`Opening ${envColored} URL of ${colors.blue(project.slug)} in the browser...`)
+    consola.info(`Opening ${envColored} URL of ${colors.blueBright(project.slug)} in the browser...`)
 
     if (!url) {
-      consola.info(`Project ${colors.blue(project.slug)} does not have a ${envColored} URL, please run \`nuxthub deploy --${env}\`.`)
+      consola.info(`Project ${colors.blueBright(project.slug)} does not have a ${envColored} URL, please run \`nuxthub deploy --${env}\`.`)
       return
     }
 

@@ -52,13 +52,13 @@ export default defineCommand({
     if (args.local) {
       const url = args.url || process.env.NUXT_HUB_PROJECT_URL || 'http://localhost:3000'
       const token = process.env.NUXT_HUB_PROJECT_SECRET_KEY // used for self-hosted projects
-      const spinner = ora(`Retrieving migrations on ${colors.cyan(url)}...`).start()
+      const spinner = ora(`Retrieving migrations on ${colors.cyanBright(url)}...`).start()
       remoteMigrations = await fetchRemoteMigrations({ url, token }).catch((error) => {
-        spinner.fail(`Could not retrieve migrations on ${colors.cyan(url)}.`)
+        spinner.fail(`Could not retrieve migrations on ${colors.cyanBright(url)}.`)
         consola.error(error.message)
         process.exit(1)
       })
-      spinner.succeed(`Found ${remoteMigrations.length} migration${remoteMigrations.length === 1 ? '' : 's'} on ${colors.cyan(url)}...`)
+      spinner.succeed(`Found ${remoteMigrations.length} migration${remoteMigrations.length === 1 ? '' : 's'} on ${colors.cyanBright(url)}...`)
     } else {
       let user = await fetchUser()
       if (!user) {
@@ -69,7 +69,7 @@ export default defineCommand({
 
       let project = await fetchProject()
       if (!project) {
-        consola.warn(`${colors.blue(projectPath())} is not linked to any NuxtHub project.`)
+        consola.warn(`${colors.blueBright(projectPath())} is not linked to any NuxtHub project.`)
 
         await runCommand(link, {})
         project = await fetchProject()
@@ -77,26 +77,26 @@ export default defineCommand({
           return console.error('Could not fetch the project, please try again.')
         }
       }
-      consola.info(`Connected to project ${colors.blue(project.slug)}.`)
+      consola.info(`Connected to project ${colors.blueBright(project.slug)}.`)
 
       // Get the environment based on branch
       const env = getProjectEnv(project, args)
-      const envColored = env === 'production' ? colors.green(env) : colors.yellow(env)
+      const envColored = env === 'production' ? colors.greenBright(env) : colors.yellowBright(env)
       const url = (env === 'production' ? project.url : project.previewUrl)
       if (!url) {
-        consola.info(`Project ${colors.blue(project.slug)} does not have a ${envColored} URL, please run \`nuxthub deploy --${env}\`.`)
+        consola.info(`Project ${colors.blueBright(project.slug)} does not have a ${envColored} URL, please run \`nuxthub deploy --${env}\`.`)
         return
       } else {
         consola.info(`Using \`${url}\` to retrieve migrations.`)
       }
 
-      const spinner = ora(`Retrieving migrations on ${envColored} for ${colors.blue(project.slug)}...`).start()
+      const spinner = ora(`Retrieving migrations on ${envColored} for ${colors.blueBright(project.slug)}...`).start()
       remoteMigrations = await fetchRemoteMigrations({ env }).catch((error) => {
-        spinner.fail(`Could not retrieve migrations on ${envColored} for ${colors.blue(project.slug)}.`)
+        spinner.fail(`Could not retrieve migrations on ${envColored} for ${colors.blueBright(project.slug)}.`)
         consola.error(error.message)
         process.exit(1)
       })
-      spinner.succeed(`Found ${remoteMigrations.length} migration${remoteMigrations.length === 1 ? '' : 's'} on ${colors.blue(project.slug)}...`)
+      spinner.succeed(`Found ${remoteMigrations.length} migration${remoteMigrations.length === 1 ? '' : 's'} on ${colors.blueBright(project.slug)}...`)
     }
 
     const pendingMigrations = localMigrations.filter(localName => !remoteMigrations.find(({ name }) => name === localName))

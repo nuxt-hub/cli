@@ -5,6 +5,7 @@ import { joinURL } from 'ufo'
 import { ofetch } from 'ofetch'
 import { gitInfo } from './git.mjs'
 import { NUXT_HUB_URL, loadUserConfig } from './config.mjs'
+import ora from 'ora'
 
 export const $api = ofetch.create({
   baseURL: joinURL(NUXT_HUB_URL, '/api'),
@@ -87,16 +88,17 @@ export async function linkCloudflareAccount(team, retry = false) {
   }
   if (isCancel(accountId)) return null
 
- const account = await $api(`/teams/${team.slug}/accounts/cloudflare`, {
+  const spinner = ora('Linking Cloudflare account...').start()
+  const account = await $api(`/teams/${team.slug}/accounts/cloudflare`, {
     method: 'PUT',
     body: { apiToken, accountId }
   })
     .catch((err) => {
-      consola.error(err.data?.message || err.message)
+      spinner.fail(err.data?.message || err.message)
       return null
     })
   if (!account) return linkCloudflareAccount(team, true)
-  consola.success('Cloudflare account linked.')
+  spinner.succeed('Cloudflare account linked.')
 
   return team
 }
@@ -148,6 +150,11 @@ export async function selectProject(team) {
       placeholder: defaultProductionBranch
     })
     if (isCancel(productionBranch)) return null
+
+    const spinner = ora(`Creating ${colors.blueBright(projectName)} project...`).start()
+    setTimeout(() => spinner.color = 'magenta', 2500)
+    setTimeout(() => spinner.color = 'blue', 5000)
+    setTimeout(() => spinner.color = 'yellow', 7500)
     project = await $api(`/teams/${team.slug}/projects`, {
       method: 'POST',
       body: {
@@ -157,18 +164,18 @@ export async function selectProject(team) {
       }
     }).catch((err) => {
       if (err.response?._data?.message?.includes('Cloudflare credentials')) {
-        consola.warn('You need to link your Cloudflare account to create a project.')
+        spinner.fail('You need to link your Cloudflare account to create a project.')
         consola.info('Please configure it in your team settings:')
         consola.info(`\`${joinURL(NUXT_HUB_URL, team.slug, '/settings/cloudflare')}\`\n`)
         process.exit(1)
       }
       if (err.response?._data?.message?.includes('Cloudflare account')) {
-        consola.error(err.response._data.message)
+        spinner.fail(err.response._data.message)
         process.exit(1)
       }
       throw err
     })
-    consola.success(`Project ${colors.blue(project.slug)} created`)
+    spinner.succeed(`Project ${colors.blueBright(project.slug)} created`)
   } else {
     project = projects.find((project) => project.id === projectId)
   }

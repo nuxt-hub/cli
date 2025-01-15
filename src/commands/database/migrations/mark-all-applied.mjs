@@ -55,22 +55,22 @@ export default defineCommand({
       const token = process.env.NUXT_HUB_PROJECT_SECRET_KEY // used for self-hosted projects
 
       const shouldApply = await confirm({
-        message: `Do you want to mark ${colors.blue(total)} migration${total > 1 ? 's' : ''} as applied on ${colors.cyan(url)}?`,
+        message: `Do you want to mark ${colors.blueBright(total)} migration${total > 1 ? 's' : ''} as applied on ${colors.cyanBright(url)}?`,
         initialValue: true
       })
       if (!shouldApply || isCancel(shouldApply)) return
-      const spinner = ora(`Marking ${colors.blue(total)} migration${total > 1 ? 's' : ''} as applied on ${colors.cyan(url)}...`).start()
+      const spinner = ora(`Marking ${colors.blueBright(total)} migration${total > 1 ? 's' : ''} as applied on ${colors.cyanBright(url)}...`).start()
 
       try {
         await createMigrationsTable({ url, token })
         await queryDatabase({ url, token, query, params })
       } catch (error) {
-        spinner.fail(`Could not mark all migrations as applied on ${colors.cyan(url)}.`)
+        spinner.fail(`Could not mark all migrations as applied on ${colors.cyanBright(url)}.`)
         if (error) consola.error(error.response?._data?.message || error)
         process.exit(1)
       }
 
-      spinner.succeed(`Marked ${colors.blue(total)} migration${total > 1 ? 's' : ''} as applied on ${colors.cyan(url)}.`)
+      spinner.succeed(`Marked ${colors.blueBright(total)} migration${total > 1 ? 's' : ''} as applied on ${colors.cyanBright(url)}.`)
       return process.exit(0)
     }
 
@@ -84,40 +84,40 @@ export default defineCommand({
 
     let project = await fetchProject()
     if (!project) {
-      consola.warn(`${colors.blue(projectPath())} is not linked to a NuxtHub project.`)
+      consola.warn(`${colors.blueBright(projectPath())} is not linked to a NuxtHub project.`)
       await runCommand(link, {})
       project = await fetchProject()
       if (!project) {
         return console.error('Could not fetch the project, please try again.')
       }
     }
-    consola.info(`Connected to project ${colors.blue(project.slug)}.`)
+    consola.info(`Connected to project ${colors.blueBright(project.slug)}.`)
 
     // Get the environment based on args or branch
     const env = getProjectEnv(project, args)
-    const envColored = env === 'production' ? colors.green(env) : colors.yellow(env)
+    const envColored = env === 'production' ? colors.greenBright(env) : colors.yellowBright(env)
     const url = (env === 'production' ? project.url : project.previewUrl)
     if (!url) {
-      consola.info(`Project ${colors.blue(project.slug)} does not have a ${envColored} deployment, please run \`nuxthub deploy --${env}\`.`)
+      consola.info(`Project ${colors.blueBright(project.slug)} does not have a ${envColored} deployment, please run \`nuxthub deploy --${env}\`.`)
       return
     }
     consola.info(`Using \`${url}\` to apply migrations.`)
     const shouldApply = await confirm({
-      message: `Do you want to mark ${colors.blue(total)} migration${total > 1 ? 's' : ''} as applied on ${envColored}?`,
+      message: `Do you want to mark ${colors.blueBright(total)} migration${total > 1 ? 's' : ''} as applied on ${envColored}?`,
       initialValue: true
     })
     if (!shouldApply || isCancel(shouldApply)) return
 
-    const spinner = ora(`Marking ${colors.blue(total)} migration${total > 1 ? 's' : ''} as applied on ${envColored} for ${colors.blue(project.slug)}...`).start()
+    const spinner = ora(`Marking ${colors.blueBright(total)} migration${total > 1 ? 's' : ''} as applied on ${envColored} for ${colors.blueBright(project.slug)}...`).start()
 
     await createMigrationsTable({ env })
     await queryDatabase({ env, query, params }).catch((error) => {
-      spinner.fail(`Could not mark all migrations as applied on ${envColored} for ${colors.blue(project.slug)}.`)
+      spinner.fail(`Could not mark all migrations as applied on ${envColored} for ${colors.blueBright(project.slug)}.`)
       if (error) consola.error(error)
       process.exit(1)
     })
 
-    spinner.succeed(`Marked ${colors.blue(total)} migration${total > 1 ? 's' : ''} as applied on ${envColored} for ${colors.blue(project.slug)}.`)
+    spinner.succeed(`Marked ${colors.blueBright(total)} migration${total > 1 ? 's' : ''} as applied on ${envColored} for ${colors.blueBright(project.slug)}.`)
   }
 });
 
