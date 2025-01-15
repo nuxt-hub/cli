@@ -21,7 +21,7 @@ export default defineCommand({
     }
     let project = await fetchProject()
     if (!project) {
-      consola.warn(`${colors.blue(projectPath())} is not linked to any NuxtHub project.`)
+      consola.warn(`${colors.blueBright(projectPath())} is not linked to any NuxtHub project.`)
 
       await runCommand(link, {})
       project = await fetchProject()

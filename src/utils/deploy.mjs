@@ -5,8 +5,9 @@ import { ofetch } from 'ofetch'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import mime from 'mime'
-import { withTilde, MAX_ASSET_SIZE, MAX_UPLOAD_CHUNK_SIZE, CONCURRENT_UPLOADS } from './index.mjs'
+import { withTilde, MAX_ASSET_SIZE, MAX_UPLOAD_CHUNK_SIZE, MAX_UPLOAD_ATTEMPTS, CONCURRENT_UPLOADS } from './index.mjs'
 import prettyBytes from 'pretty-bytes'
+import { gzipSize as getGzipSize } from 'gzip-size'
 
 export function hashFile(data) {
   return createHash('sha256')
@@ -102,11 +103,14 @@ export async function getFile(storage, path, encoding = 'utf-8') {
   if (dataAsBuffer.length > MAX_ASSET_SIZE) {
     throw new Error(`NuxtHub deploy only supports files up to ${prettyBytes(MAX_ASSET_SIZE, { binary: true })} in size\n${withTilde(path)} is ${prettyBytes(dataAsBuffer.size, { binary: true })} in size`)
   }
+  const gzipSize = await getGzipSize(dataAsBuffer)
   const data = dataAsBuffer.toString(encoding)
+
   return {
     path,
     data,
     size: dataAsBuffer.length,
+    gzipSize,
     encoding,
     hash: hashFile(data),
     contentType: mime.getType(path) || 'application/octet-stream'
@@ -133,7 +137,8 @@ export const isPublicPath = (path) => !isMetaPath(path) && !isServerPath(path)
  * @returns {Promise<Array<{ path: string, data: string, size: number, encoding: string, hash: string, contentType: string }>>}
  */
 export async function getPublicFiles(storage, paths) {
-  return Promise.all(paths.filter(isPublicPath).map(p => getFile(storage, p, 'base64'))
+  return Promise.all(
+    paths.filter(isPublicPath).map(p => getFile(storage, p, 'base64'))
   )
 }
 
@@ -141,16 +146,19 @@ export async function getPublicFiles(storage, paths) {
  * Upload assets to Cloudflare with concurrent uploads
  * @param {Array<{ path: string, data: string, hash: string, contentType: string }>} files - Files to upload
  * @param {string} cloudflareUploadJwt - Cloudflare upload JWT
- * @returns {AsyncGenerator<{current: number, total: number}, void, void>}
+ * @param {Function} onProgress - Callback function to update progress
  */
-export async function* uploadAssetsToCloudflare(files, cloudflareUploadJwt) {
+export async function uploadAssetsToCloudflare(files, cloudflareUploadJwt, onProgress) {
   const chunks = await createChunks(files)
+  if (!chunks.length) {
+    return
+  }
 
+  let filesUploaded = 0
+  let progressSize = 0
+  const totalSize = files.reduce((acc, file) => acc + file.size, 0)
   for (let i = 0; i < chunks.length; i += CONCURRENT_UPLOADS) {
     const chunkGroup = chunks.slice(i, i + CONCURRENT_UPLOADS)
-    if (chunks.length > 1) {
-      yield { current: i + 1, total: chunks.length }
-    }
 
     await Promise.all(chunkGroup.map(async (filesInChunk) => {
       return ofetch('/pages/assets/upload', {
@@ -159,6 +167,7 @@ export async function* uploadAssetsToCloudflare(files, cloudflareUploadJwt) {
         headers: {
           Authorization: `Bearer ${cloudflareUploadJwt}`
         },
+        retry: MAX_UPLOAD_ATTEMPTS,
         body: filesInChunk.map(file => ({
           path: file.path,
           key: file.hash,
@@ -169,6 +178,15 @@ export async function* uploadAssetsToCloudflare(files, cloudflareUploadJwt) {
           }
         }))
       })
+      .then(() => {
+        if (typeof onProgress === 'function') {
+          filesUploaded += filesInChunk.length
+          progressSize += filesInChunk.reduce((acc, file) => acc + file.size, 0)
+          onProgress({ progress: filesUploaded, progressSize, total: files.length, totalSize })
+        }
+      })
     }))
   }
 }
+
+// async function uploadToCloudflare(body, cloudflareUploadJwt) {

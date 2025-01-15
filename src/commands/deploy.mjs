@@ -1,3 +1,4 @@
+import prettyBytes from 'pretty-bytes'
 import ora from 'ora'
 import { consola } from 'consola'
 import { colors } from 'consola/utils'
@@ -71,7 +72,7 @@ export default defineCommand({
     if (!linkedProject) {
       consola.info('No project is linked with the `NUXT_HUB_PROJECT_KEY` environment variable.')
       const shouldDeploy = await confirm({
-        message: `Deploy ${colors.blue(projectPath())} to NuxtHub?`
+        message: `Deploy ${colors.blueBright(projectPath())} to NuxtHub?`
       })
       if (!shouldDeploy || isCancel(shouldDeploy)) {
         return consola.log('Cancelled.')
@@ -99,9 +100,9 @@ export default defineCommand({
       }
       deployEnv = 'preview'
     }
-    const deployEnvColored = deployEnv === 'production' ? colors.green(deployEnv) : colors.yellow(deployEnv)
-    consola.success(`Connected to ${colors.blue(linkedProject.teamSlug)} team.`)
-    consola.success(`Linked to ${colors.blue(linkedProject.slug)} project.`)
+    const deployEnvColored = deployEnv === 'production' ? colors.greenBright(deployEnv) : colors.yellowBright(deployEnv)
+    consola.success(`Connected to ${colors.blueBright(linkedProject.teamSlug)} team.`)
+    consola.success(`Linked to ${colors.blueBright(linkedProject.slug)} project.`)
 
     // #region Build
     if (args.build) {
@@ -136,11 +137,15 @@ export default defineCommand({
     const fileKeys = await storage.getKeys()
     const pathsToDeploy = getPathsToDeploy(fileKeys)
     const config = await storage.getItem('hub.config.json')
+    const { format: formatNumber } = new Intl.NumberFormat('en-US')
 
-    const spinner = ora(`Preparing ${colors.blue(linkedProject.slug)} deployment to ${deployEnvColored}...`).start()
-    setTimeout(() => spinner.color = 'magenta', 2500)
-    setTimeout(() => spinner.color = 'blue', 5000)
-    setTimeout(() => spinner.color = 'yellow', 7500)
+    let spinner = ora(`Preparing ${colors.blueBright(linkedProject.slug)} deployment for ${deployEnvColored}...`).start()
+    const spinnerColors = ['magenta', 'blue', 'yellow', 'green']
+    let spinnerColorIndex = 0
+    const spinnerColorInterval = setInterval(() => {
+      spinner.color = spinnerColors[spinnerColorIndex]
+      spinnerColorIndex = (spinnerColorIndex + 1) % spinnerColors.length
+    }, 2500)
 
     let deployment
     try {
@@ -164,16 +169,32 @@ export default defineCommand({
           }, {})
         }
       })
+      spinner.succeed(`${colors.blueBright(linkedProject.slug)} ready to deploy.`)
       const { deploymentKey, missingPublicHashes, cloudflareUploadJwt } = deploymentInfo
       const publicFilesToUpload = publicFiles.filter(file => missingPublicHashes.includes(file.hash))
 
-      for await (const { current, total } of uploadAssetsToCloudflare(publicFilesToUpload, cloudflareUploadJwt)) {
-        spinner.text = `Uploading (${current}/${total})...`
+      if (publicFilesToUpload.length) {
+        const totalSizeToUpload = publicFilesToUpload.reduce((acc, file) => acc + file.size, 0)
+        spinner = ora(`Uploading ${colors.blueBright(formatNumber(publicFilesToUpload.length))} new static assets (${colors.blueBright(prettyBytes(totalSizeToUpload))})...`).start()
+        await uploadAssetsToCloudflare(publicFilesToUpload, cloudflareUploadJwt, ({ progressSize, totalSize }) => {
+          const percentage = Math.round((progressSize / totalSize) * 100)
+          spinner.text = `${percentage}% uploaded (${prettyBytes(progressSize)}/${prettyBytes(totalSize)})...`
+        })
+        spinner.succeed(`${colors.blueBright(formatNumber(publicFilesToUpload.length))} new static assets uploaded (${colors.blueBright(prettyBytes(totalSizeToUpload))})`)
       }
 
-      spinner.text = `Deploying ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`
-      const serverFiles = await Promise.all(pathsToDeploy.filter(isServerPath).map(p => getFile(storage, p, 'utf-8')))
-      const metaFiles = await Promise.all(pathsToDeploy.filter(isMetaPath).map(p => getFile(storage, p, 'utf-8')))
+      if (publicFiles.length) {
+        const totalSize = publicFiles.reduce((acc, file) => acc + file.size, 0)
+        const totalGzipSize = publicFiles.reduce((acc, file) => acc + file.gzipSize, 0)
+        consola.info(`${colors.blueBright(formatNumber(publicFiles.length))} static assets (${colors.blueBright(prettyBytes(totalSize))} / ${colors.blueBright(prettyBytes(totalGzipSize))} gzip)`)
+      }
+
+      const metaFiles = await Promise.all(pathsToDeploy.filter(isMetaPath).map(p => getFile(storage, p, 'base64')))
+      const serverFiles = await Promise.all(pathsToDeploy.filter(isServerPath).map(p => getFile(storage, p, 'base64')))
+      const serverFilesSize = serverFiles.reduce((acc, file) => acc + file.size, 0)
+      const serverFilesGzipSize = serverFiles.reduce((acc, file) => acc + file.gzipSize, 0)
+      consola.info(`${colors.blueBright(formatNumber(serverFiles.length))} server files (${colors.blueBright(prettyBytes(serverFilesSize))} / ${colors.blueBright(prettyBytes(serverFilesGzipSize))} gzip)...`)
+      spinner = ora(`Deploying ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}...`).start()
       deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/complete`, {
         method: 'POST',
         body: {
@@ -184,7 +205,7 @@ export default defineCommand({
         },
       })
     } catch (err) {
-      spinner.fail(`Failed to deploy ${colors.blue(linkedProject.slug)} to ${deployEnvColored}.`)
+      spinner.fail(`Failed to deploy ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}.`)
       console.log('err', err)
       // Error with workers size limit
       if (err.data?.data?.name === 'ZodError') {
@@ -198,20 +219,20 @@ export default defineCommand({
       process.exit(1)
     }
 
-    spinner.succeed(`Deployed ${colors.blue(linkedProject.slug)} to ${deployEnvColored}...`)
+    spinner.succeed(`Deployed ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}...`)
 
     // #region Database migrations
     if (config.database) {
-      const remoteMigrationsSpinner = ora(`Retrieving migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}...`).start()
+      const remoteMigrationsSpinner = ora(`Retrieving migrations on ${deployEnvColored} for ${colors.blueBright(linkedProject.slug)}...`).start()
 
       await createMigrationsTable({ env: deployEnv })
 
       const remoteMigrations = await fetchRemoteMigrations({ env: deployEnv }).catch((error) => {
-        remoteMigrationsSpinner.fail(`Could not retrieve migrations on ${deployEnvColored} for ${colors.blue(linkedProject.slug)}.`)
+        remoteMigrationsSpinner.fail(`Could not retrieve migrations on ${deployEnvColored} for ${colors.blueBright(linkedProject.slug)}.`)
         consola.error(error.message)
         process.exit(1)
       })
-      remoteMigrationsSpinner.succeed(`Found ${remoteMigrations.length} migration${remoteMigrations.length === 1 ? '' : 's'} on ${colors.blue(linkedProject.slug)}`)
+      remoteMigrationsSpinner.succeed(`Found ${remoteMigrations.length} migration${remoteMigrations.length === 1 ? '' : 's'} on ${colors.blueBright(linkedProject.slug)}`)
 
       const localMigrations = fileKeys
         .filter(fileKey => {
@@ -228,7 +249,7 @@ export default defineCommand({
       if (!pendingMigrations.length) consola.info('No pending migrations to apply.')
 
       for (const migration of pendingMigrations) {
-        const migrationSpinner = ora(`Applying migration ${colors.blue(migration)}...`).start()
+        const migrationSpinner = ora(`Applying migration ${colors.blueBright(migration)}...`).start()
 
         let query = await storage.getItem(`database/migrations/${migration}.sql`)
 
@@ -240,22 +261,24 @@ export default defineCommand({
         try {
           await queryDatabase({ env: deployEnv, query })
         } catch (error) {
-          migrationSpinner.fail(`Failed to apply migration ${colors.blue(migration)}.`)
+          migrationSpinner.fail(`Failed to apply migration ${colors.blueBright(migration)}.`)
 
           if (error) consola.error(error.response?._data?.message || error.message)
           break
         }
 
-        migrationSpinner.succeed(`Applied migration ${colors.blue(migration)}.`)
+        migrationSpinner.succeed(`Applied migration ${colors.blueBright(migration)}.`)
       }
     }
 
     // Check DNS & ready url for first deployment
-    consola.success(`Deployment is ready at ${colors.cyan(deployment.primaryUrl || deployment.url)}`)
+    consola.success(`Deployment is ready at ${colors.cyanBright(deployment.primaryUrl || deployment.url)}`)
     if (deployment.isFirstDeploy) {
       consola.info('As this is the first deployment, please note that domain propagation may take a few minutes.')
     }
 
+    clearInterval(spinnerColorInterval)
     process.exit(0)
   },
 })
+

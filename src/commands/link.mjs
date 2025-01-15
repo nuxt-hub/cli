@@ -19,10 +19,10 @@ export default defineCommand({
     }
     let project = await fetchProject()
     if (project) {
-      consola.warn(`This directory is already linked to the ${colors.blue(project.slug)} project.`)
+      consola.warn(`This directory is already linked to the ${colors.blueBright(project.slug)} project.`)
 
       const linkAnyway = await confirm({
-        message: `Do you want to link ${colors.blue(projectPath())} to another project?`,
+        message: `Do you want to link ${colors.blueBright(projectPath())} to another project?`,
         initialValue: false
       })
       if (!linkAnyway || isCancel(linkAnyway)) {
@@ -30,7 +30,7 @@ export default defineCommand({
       }
     } else {
       const shouldLink = await confirm({
-        message: `Link ${colors.blue(projectPath())} to NuxtHub?`
+        message: `Link ${colors.blueBright(projectPath())} to NuxtHub?`
       })
       if (!shouldLink || isCancel(shouldLink)) {
         return consola.log('Cancelled.')
@@ -45,6 +45,6 @@ export default defineCommand({
 
     await linkProject(project)
 
-    consola.success(`Project ${colors.blue(project.slug)} linked.`)
+    consola.success(`Project ${colors.blueBright(project.slug)} linked.`)
   },
 })

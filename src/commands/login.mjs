@@ -20,7 +20,7 @@ export default defineCommand({
     }
     const user = await fetchUser()
     if (user) {
-      return consola.info(`Already logged in as ${colors.blue(user.name)}`)
+      return consola.info(`Already logged in as ${colors.blueBright(user.name)}`)
     }
     // Create server for OAuth flow
     let listener

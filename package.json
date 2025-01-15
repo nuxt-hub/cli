@@ -37,6 +37,7 @@
     "dotenv": "^16.4.7",
     "execa": "^9.5.2",
     "get-port-please": "^3.1.2",
+    "gzip-size": "^7.0.0",
     "h3": "^1.13.0",
     "listhen": "^1.9.0",
     "load-json-file": "^7.0.1",

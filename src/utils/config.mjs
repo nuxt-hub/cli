@@ -11,8 +11,9 @@ config()
 export const INITIAL_CONFIG = loadUserConfig()
 export const NUXT_HUB_URL = process.env.NUXT_HUB_URL || INITIAL_CONFIG.hub?.url || 'https://admin.hub.nuxt.com'
 export const MAX_ASSET_SIZE = 25 * 1024 * 1024
-export const MAX_UPLOAD_CHUNK_SIZE = 50 * 1024 * 1024 // 50MiB chunk size (in bytes)
-export const CONCURRENT_UPLOADS = 3
+export const MAX_UPLOAD_CHUNK_SIZE = 10 * 1024 * 1024 // 10MiB chunk size (in bytes)
+export const MAX_UPLOAD_ATTEMPTS = 5
+export const CONCURRENT_UPLOADS = 5
 
 export function loadUserConfig () {
   return readUser('.nuxtrc')

@@ -55,7 +55,7 @@ export function printFormattedLog(log) {
     // Request
     const { request: { method, url }, response } = log.event
     const { status } = response || {}
-    const statusColored = status ? (status >= 500 ? colors.red(status) : status >= 400 ? colors.yellow(status) : colors.green(status)) : colors.gray('aborted')
+    const statusColored = status ? (status >= 500 ? colors.redBright(status) : status >= 400 ? colors.yellowBright(status) : colors.greenBright(status)) : colors.gray('aborted')
     // const datetime = new Date(log.eventTimestamp).toLocaleString()
     const path = new URL(url).pathname
 
@@ -123,7 +123,7 @@ export function printFormattedLog(log) {
 
   if (log.exceptions.length > 0) {
     log.exceptions.forEach(({ name, message }) => {
-      consola.error(colors.red(`${name}:`, message))
+      consola.error(colors.redBright(`${name}:`, message))
     })
   }
 }
