@@ -27,25 +27,25 @@
     "release": "release-it"
   },
   "dependencies": {
-    "@clack/prompts": "^0.9.0",
+    "@clack/prompts": "^0.9.1",
     "c12": "^2.0.1",
     "ci-info": "^4.1.0",
     "citty": "^0.1.6",
     "confbox": "^0.1.8",
-    "consola": "^3.3.3",
+    "consola": "^3.4.0",
     "dns2": "^2.1.0",
     "dotenv": "^16.4.7",
     "execa": "^9.5.2",
     "get-port-please": "^3.1.2",
     "gzip-size": "^7.0.0",
-    "h3": "^1.13.0",
+    "h3": "^1.13.1",
     "listhen": "^1.9.0",
     "load-json-file": "^7.0.1",
     "mime": "^4.0.6",
     "ofetch": "^1.4.1",
     "open": "^10.1.0",
     "ora": "^8.1.1",
-    "pathe": "^2.0.0",
+    "pathe": "^2.0.1",
     "pretty-bytes": "^6.1.1",
     "rc9": "^2.1.2",
     "signal-exit": "^4.1.0",
@@ -55,9 +55,9 @@
     "ws": "^8.18.0"
   },
   "devDependencies": {
-    "@nuxt/eslint-config": "^0.7.4",
-    "eslint": "^9.17.0",
-    "release-it": "^18.0.0"
+    "@nuxt/eslint-config": "^0.7.5",
+    "eslint": "^9.18.0",
+    "release-it": "^18.1.1"
   },
   "release-it": {
     "git": {
@@ -68,5 +68,5 @@
       "releaseName": "v${version}"
     }
   },
-  "packageManager": "pnpm@9.15.3"
+  "packageManager": "pnpm@9.15.4"
 }
