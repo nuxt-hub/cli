@@ -39,7 +39,7 @@ export default defineCommand({
     const total = localMigrations.length
 
     if (total === 0) {
-      consola.info('No migrations found in `./server/database/migrations`, please create one first.')
+      consola.info('No migrations found, please create one first with `nuxthub database migrations create <name>`.')
       return process.exit(0)
     }
 

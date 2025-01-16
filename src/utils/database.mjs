@@ -1,10 +1,10 @@
 import { consola } from 'consola'
 import { join } from 'pathe'
+import { existsSync } from 'node:fs'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import { $api } from './data.mjs'
 import { $fetch } from 'ofetch'
-
 
 export async function queryDatabase({ env, url, token, query, params }) {
   if (url) {
@@ -40,6 +40,14 @@ export async function queryRemoteDatabase({ url, token, query, params })  {
   })
 }
 
+let _migrationsDir
+export function getMigrationsDir() {
+  if (!_migrationsDir) {
+    const cwd = process.cwd()
+    _migrationsDir = existsSync(join(cwd, '.data/hub/database/migrations')) ? join(cwd, '.data/hub/database/migrations') : join(cwd, 'server/database/migrations')
+  }
+  return _migrationsDir
+}
 
 /**
  * @type {import('unstorage').Storage}
@@ -47,13 +55,11 @@ export async function queryRemoteDatabase({ url, token, query, params })  {
 let _storage
 export function useMigrationsStorage() {
   if (!_storage) {
-    const cwd = process.cwd()
-    const migrationsDir = join(cwd, 'server/database/migrations')
     _storage = createStorage({
       driver: fsDriver({
-        base: migrationsDir,
+        base: getMigrationsDir(),
         ignore: ['.DS_Store']
-      }),
+      })
     })
   }
   return _storage
@@ -72,7 +78,7 @@ export async function getNextMigrationNumber() {
     .sort((a, b) => a - b)
     .pop() ?? 0
 
-  return (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
+    return (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
 }
 
 const CreateMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS _hub_migrations (
