@@ -81,21 +81,22 @@ export async function getNextMigrationNumber() {
     return (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
 }
 
-const CreateMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS _hub_migrations (
+export const CreateDatabaseMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS _hub_migrations (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT UNIQUE,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );`
+export const ListDatabaseMigrationsQuery = 'select "id", "name", "applied_at" from "_hub_migrations" order by "_hub_migrations"."id"'
+
 export async function createMigrationsTable({ env, url, token }) {
-  await queryDatabase({ env, url, token, query: CreateMigrationsTableQuery })
+  await queryDatabase({ env, url, token, query: CreateDatabaseMigrationsTableQuery })
 }
 
 /**
  * @type {Promise<Array<{ id: number, name: string, applied_at: string }>>}
  */
 export async function fetchRemoteMigrations({ env, url, token }) {
-  const query = 'select "id", "name", "applied_at" from "_hub_migrations" order by "_hub_migrations"."id"'
-  const res = await queryDatabase({ env, url, token, query }).catch((error) => {
+  const res = await queryDatabase({ env, url, token, query: ListDatabaseMigrationsQuery }).catch((error) => {
     if (error.response?._data?.message.includes('no such table')) {
       return []
     }
