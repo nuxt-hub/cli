@@ -292,10 +292,8 @@ export default defineCommand({
 
         }
         querySpinner.succeed(`Applied ${colors.blueBright(formatNumber(localQueries.length))} database queries.`)
-      } else {
-        consola.info('No pending database queries to apply.')
       }
-        // #endregion
+      // #endregion
     }
 
     // Check DNS & ready url for first deployment
