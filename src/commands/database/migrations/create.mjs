@@ -1,6 +1,8 @@
 import { defineCommand } from 'citty'
 import { consola } from 'consola'
-import { useMigrationsStorage, getNextMigrationNumber } from '../../../utils/database.mjs'
+import { writeFile, mkdir } from 'node:fs/promises'
+import { join } from 'pathe'
+import { getNextMigrationNumber } from '../../../utils/database.mjs'
 
 export default defineCommand({
   meta: {
@@ -25,8 +27,10 @@ export default defineCommand({
       .replace(/-+/g, '-') // replace multiple dashes with a single dash
       || 'migration'
     const migrationName = `${nextMigrationNumber}_${name}.sql`
-    await useMigrationsStorage().set(migrationName, `-- Migration number: ${nextMigrationNumber} \t ${new Date().toISOString()}\n`)
+    const userMigrationsDir = join(process.cwd(), 'server/database/migrations')
+    await mkdir(userMigrationsDir, { recursive: true })
+    await writeFile(join(userMigrationsDir, migrationName), `-- Migration number: ${nextMigrationNumber} \t ${new Date().toISOString()}\n`)
 
-    consola.success(`Created migration file \`server/migrations/${migrationName}\``)
+    consola.success(`Created migration file \`server/database/migrations/${migrationName}\``)
   }
 });

@@ -1,10 +1,10 @@
 import { consola } from 'consola'
 import { join } from 'pathe'
+import { existsSync } from 'node:fs'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import { $api } from './data.mjs'
 import { $fetch } from 'ofetch'
-
 
 export async function queryDatabase({ env, url, token, query, params }) {
   if (url) {
@@ -40,6 +40,14 @@ export async function queryRemoteDatabase({ url, token, query, params })  {
   })
 }
 
+let _migrationsDir
+export function getMigrationsDir() {
+  if (!_migrationsDir) {
+    const cwd = process.cwd()
+    _migrationsDir = existsSync(join(cwd, '.data/hub/database/migrations')) ? join(cwd, '.data/hub/database/migrations') : join(cwd, 'server/database/migrations')
+  }
+  return _migrationsDir
+}
 
 /**
  * @type {import('unstorage').Storage}
@@ -47,13 +55,11 @@ export async function queryRemoteDatabase({ url, token, query, params })  {
 let _storage
 export function useMigrationsStorage() {
   if (!_storage) {
-    const cwd = process.cwd()
-    const migrationsDir = join(cwd, 'server/database/migrations')
     _storage = createStorage({
       driver: fsDriver({
-        base: migrationsDir,
+        base: getMigrationsDir(),
         ignore: ['.DS_Store']
-      }),
+      })
     })
   }
   return _storage
@@ -72,24 +78,25 @@ export async function getNextMigrationNumber() {
     .sort((a, b) => a - b)
     .pop() ?? 0
 
-  return (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
+    return (lastSequentialMigrationNumber + 1).toString().padStart(4, '0')
 }
 
-const CreateMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS _hub_migrations (
+export const CreateDatabaseMigrationsTableQuery = `CREATE TABLE IF NOT EXISTS _hub_migrations (
     id         INTEGER PRIMARY KEY AUTOINCREMENT,
     name       TEXT UNIQUE,
     applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );`
+export const ListDatabaseMigrationsQuery = 'select "id", "name", "applied_at" from "_hub_migrations" order by "_hub_migrations"."id"'
+
 export async function createMigrationsTable({ env, url, token }) {
-  await queryDatabase({ env, url, token, query: CreateMigrationsTableQuery })
+  await queryDatabase({ env, url, token, query: CreateDatabaseMigrationsTableQuery })
 }
 
 /**
  * @type {Promise<Array<{ id: number, name: string, applied_at: string }>>}
  */
 export async function fetchRemoteMigrations({ env, url, token }) {
-  const query = 'select "id", "name", "applied_at" from "_hub_migrations" order by "_hub_migrations"."id"'
-  const res = await queryDatabase({ env, url, token, query }).catch((error) => {
+  const res = await queryDatabase({ env, url, token, query: ListDatabaseMigrationsQuery }).catch((error) => {
     if (error.response?._data?.message.includes('no such table')) {
       return []
     }

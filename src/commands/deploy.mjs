@@ -221,18 +221,18 @@ export default defineCommand({
 
     spinner.succeed(`Deployed ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}...`)
 
-    // #region Database migrations
     if (config.database) {
-      const remoteMigrationsSpinner = ora(`Retrieving migrations on ${deployEnvColored} for ${colors.blueBright(linkedProject.slug)}...`).start()
+      // #region Database migrations
+      const remoteMigrationsSpinner = ora(`Retrieving database migrations on ${deployEnvColored} for ${colors.blueBright(linkedProject.slug)}...`).start()
 
       await createMigrationsTable({ env: deployEnv })
 
       const remoteMigrations = await fetchRemoteMigrations({ env: deployEnv }).catch((error) => {
-        remoteMigrationsSpinner.fail(`Could not retrieve migrations on ${deployEnvColored} for ${colors.blueBright(linkedProject.slug)}.`)
+        remoteMigrationsSpinner.fail(`Could not retrieve database migrations on ${deployEnvColored} for ${colors.blueBright(linkedProject.slug)}.`)
         consola.error(error.message)
         process.exit(1)
       })
-      remoteMigrationsSpinner.succeed(`Found ${remoteMigrations.length} migration${remoteMigrations.length === 1 ? '' : 's'} on ${colors.blueBright(linkedProject.slug)}`)
+      remoteMigrationsSpinner.succeed(`Found ${remoteMigrations.length} database migration${remoteMigrations.length === 1 ? '' : 's'} on ${colors.blueBright(linkedProject.slug)}`)
 
       const localMigrations = fileKeys
         .filter(fileKey => {
@@ -246,10 +246,10 @@ export default defineCommand({
             .replace('.sql', '')
         })
       const pendingMigrations = localMigrations.filter(localName => !remoteMigrations.find(({ name }) => name === localName))
-      if (!pendingMigrations.length) consola.info('No pending migrations to apply.')
+      if (!pendingMigrations.length) consola.info('No pending database migrations to apply.')
 
       for (const migration of pendingMigrations) {
-        const migrationSpinner = ora(`Applying migration ${colors.blueBright(migration)}...`).start()
+        const migrationSpinner = ora(`Applying database migration ${colors.blueBright(migration)}...`).start()
 
         let query = await storage.getItem(`database/migrations/${migration}.sql`)
 
@@ -261,14 +261,41 @@ export default defineCommand({
         try {
           await queryDatabase({ env: deployEnv, query })
         } catch (error) {
-          migrationSpinner.fail(`Failed to apply migration ${colors.blueBright(migration)}.`)
+          migrationSpinner.fail(`Failed to apply database migration ${colors.blueBright(migration)}.`)
 
           if (error) consola.error(error.response?._data?.message || error.message)
           break
         }
 
-        migrationSpinner.succeed(`Applied migration ${colors.blueBright(migration)}.`)
+        migrationSpinner.succeed(`Applied database migration ${colors.blueBright(migration)}.`)
       }
+      // #endregion
+      // #region Database queries
+      const localQueries = fileKeys
+        .filter(fileKey => fileKey.startsWith('database:queries:') && fileKey.endsWith('.sql'))
+        .map(fileKey => fileKey.replace('database:queries:', '').replace('.sql', ''))
+
+
+      if (localQueries.length) {
+        const querySpinner = ora(`Applying ${colors.blueBright(formatNumber(localQueries.length))} database queries...`).start()
+        for (const queryName of localQueries) {
+          const query = await storage.getItem(`database/queries/${queryName}.sql`)
+
+          try {
+            await queryDatabase({ env: deployEnv, query })
+          } catch (error) {
+            querySpinner.fail(`Failed to apply database query ${colors.blueBright(queryName)}.`)
+
+            if (error) consola.error(error.response?._data?.message || error.message)
+            break
+          }
+
+        }
+        querySpinner.succeed(`Applied ${colors.blueBright(formatNumber(localQueries.length))} database queries.`)
+      } else {
+        consola.info('No pending database queries to apply.')
+      }
+        // #endregion
     }
 
     // Check DNS & ready url for first deployment

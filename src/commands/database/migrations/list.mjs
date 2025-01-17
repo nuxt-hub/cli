@@ -1,8 +1,9 @@
 import ora from 'ora'
 import { defineCommand, runCommand } from 'citty'
+import { join, relative } from 'pathe'
 import { consola } from 'consola'
 import { colors } from 'consola/utils'
-import { fetchUser, fetchProject, projectPath, getProjectEnv, fetchRemoteMigrations, getMigrationFiles } from '../../../utils/index.mjs'
+import { fetchUser, fetchProject, projectPath, getProjectEnv, fetchRemoteMigrations, getMigrationsDir, getMigrationFiles } from '../../../utils/index.mjs'
 import link from '../../link.mjs'
 import login from '../../login.mjs'
 
@@ -37,7 +38,7 @@ export default defineCommand({
     const total = localMigrations.length
 
     if (total === 0) {
-      consola.info('No migrations found in `./server/database/migrations`, please create one first.')
+      consola.info('No migrations found, please create one first with `nuxthub database migrations create <name>`.')
       return process.exit(0)
     }
 
@@ -103,10 +104,11 @@ export default defineCommand({
     const formattedPendingMigrations = pendingMigrations.map(fileName => ({ id: null, name: fileName, applied_at: null }))
     const migrations = remoteMigrations.concat(formattedPendingMigrations)
 
+    const migrationsDir = relative(process.cwd(), getMigrationsDir())
     for (const { name, applied_at } of migrations) {
       const appliedAt = applied_at ? new Date(applied_at).toLocaleString() : 'Pending'
       const color = applied_at ? colors.green : colors.yellow
-      consola.log(`${color(applied_at ? '✅' : '🕒')} \`./server/database/migrations/${name}.sql\` ${colors.gray(appliedAt)}`)
+      consola.log(`${color(applied_at ? '✅' : '🕒')} \`${join(migrationsDir, name)}.sql\` ${colors.gray(appliedAt)}`)
     }
 
     process.exit(0)

@@ -42,7 +42,7 @@ export default defineCommand({
       fileSideEffects.push(devVarsPath)
     }
 
-    const wrangler = generateWrangler(hubConfig, nitroConfig)
+    const wrangler = generateWrangler(hubConfig, { preset: nitroConfig.preset })
     const wranglerPath = join(distDir, 'wrangler.toml')
     consola.info(`Generating \`${relative(process.cwd(), wranglerPath)}\`...`)
     fileSideEffects.push(wranglerPath)
