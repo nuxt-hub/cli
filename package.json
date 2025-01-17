@@ -15,7 +15,8 @@
     "nuxt-hub": "./src/index.mjs"
   },
   "exports": {
-    ".": "./src/index.mjs"
+    ".": "./src/index.mjs",
+    "./internal": "./src/internal.mjs"
   },
   "files": [
     "src/"
