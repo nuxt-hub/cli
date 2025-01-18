@@ -128,7 +128,7 @@ export default defineCommand({
     }
     // #endregion
 
-    // #region Deploy
+    // #region Prepare deployment
     const distDir = join(cwd, 'dist')
     const storage = await getStorage(distDir).catch((err) => {
       consola.error(err.message.includes('directory not found') ? `${err.message}, please make sure that you have built your project.` : err.message)
@@ -147,7 +147,7 @@ export default defineCommand({
       spinnerColorIndex = (spinnerColorIndex + 1) % spinnerColors.length
     }, 2500)
 
-    let deployment
+    let deploymentKey, serverFiles, metaFiles
     try {
       const publicFiles = await getPublicFiles(storage, pathsToDeploy)
 
@@ -170,7 +170,8 @@ export default defineCommand({
         }
       })
       spinner.succeed(`${colors.blueBright(linkedProject.slug)} ready to deploy.`)
-      const { deploymentKey, missingPublicHashes, cloudflareUploadJwt } = deploymentInfo
+      const { missingPublicHashes, cloudflareUploadJwt } = deploymentInfo
+      deploymentKey = deploymentInfo.deploymentKey
       const publicFilesToUpload = publicFiles.filter(file => missingPublicHashes.includes(file.hash))
 
       if (publicFilesToUpload.length) {
@@ -189,24 +190,13 @@ export default defineCommand({
         consola.info(`${colors.blueBright(formatNumber(publicFiles.length))} static assets (${colors.blueBright(prettyBytes(totalSize))} / ${colors.blueBright(prettyBytes(totalGzipSize))} gzip)`)
       }
 
-      const metaFiles = await Promise.all(pathsToDeploy.filter(isMetaPath).map(p => getFile(storage, p, 'base64')))
-      const serverFiles = await Promise.all(pathsToDeploy.filter(isServerPath).map(p => getFile(storage, p, 'base64')))
+      metaFiles = await Promise.all(pathsToDeploy.filter(isMetaPath).map(p => getFile(storage, p, 'base64')))
+      serverFiles = await Promise.all(pathsToDeploy.filter(isServerPath).map(p => getFile(storage, p, 'base64')))
       const serverFilesSize = serverFiles.reduce((acc, file) => acc + file.size, 0)
       const serverFilesGzipSize = serverFiles.reduce((acc, file) => acc + file.gzipSize, 0)
       consola.info(`${colors.blueBright(formatNumber(serverFiles.length))} server files (${colors.blueBright(prettyBytes(serverFilesSize))} / ${colors.blueBright(prettyBytes(serverFilesGzipSize))} gzip)...`)
-      spinner = ora(`Deploying ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}...`).start()
-      deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/complete`, {
-        method: 'POST',
-        body: {
-          deploymentKey,
-          git,
-          serverFiles,
-          metaFiles
-        },
-      })
     } catch (err) {
       spinner.fail(`Failed to deploy ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}.`)
-      console.log('err', err)
       // Error with workers size limit
       if (err.data?.data?.name === 'ZodError') {
         consola.error(err.data.data.issues)
@@ -218,8 +208,6 @@ export default defineCommand({
       }
       process.exit(1)
     }
-
-    spinner.succeed(`Deployed ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}...`)
 
     if (config.database) {
       // #region Database migrations
@@ -270,6 +258,7 @@ export default defineCommand({
         migrationSpinner.succeed(`Applied database migration ${colors.blueBright(migration)}.`)
       }
       // #endregion
+
       // #region Database queries
       const localQueries = fileKeys
         .filter(fileKey => fileKey.startsWith('database:queries:') && fileKey.endsWith('.sql'))
@@ -277,7 +266,7 @@ export default defineCommand({
 
 
       if (localQueries.length) {
-        const querySpinner = ora(`Applying ${colors.blueBright(formatNumber(localQueries.length))} database queries...`).start()
+        const querySpinner = ora(`Applying ${colors.blueBright(formatNumber(localQueries.length))} database ${localQueries.length === 1 ? 'query' : 'queries'}...`).start()
         for (const queryName of localQueries) {
           const query = await storage.getItem(`database/queries/${queryName}.sql`)
 
@@ -291,10 +280,35 @@ export default defineCommand({
           }
 
         }
-        querySpinner.succeed(`Applied ${colors.blueBright(formatNumber(localQueries.length))} database queries.`)
+        querySpinner.succeed(`Applied ${colors.blueBright(formatNumber(localQueries.length))} database ${localQueries.length === 1 ? 'query' : 'queries'}.`)
       }
       // #endregion
     }
+
+    // #region Complete deployment
+    spinner = ora(`Deploying ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}...`).start()
+    const deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/complete`, {
+      method: 'POST',
+      body: {
+        deploymentKey,
+        git,
+        serverFiles,
+        metaFiles
+      },
+    }).catch((err) => {
+      spinner.fail(`Failed to deploy ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}.`)
+      // Error with workers size limit
+      if (err.data?.data?.name === 'ZodError') {
+        consola.error(err.data.data.issues)
+      }
+      else if (err.message.includes('Error: ')) {
+        consola.error(err.message.split('Error: ')[1])
+      } else {
+        consola.error(err.message.split(' - ')[1] || err.message)
+      }
+      process.exit(1)
+    })
+    spinner.succeed(`Deployed ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}...`)
 
     // Check DNS & ready url for first deployment
     consola.success(`Deployment is ready at ${colors.cyanBright(deployment.primaryUrl || deployment.url)}`)
@@ -306,4 +320,3 @@ export default defineCommand({
     process.exit(0)
   },
 })
-
