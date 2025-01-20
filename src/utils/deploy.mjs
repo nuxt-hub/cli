@@ -5,7 +5,7 @@ import { ofetch } from 'ofetch'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import mime from 'mime'
-import { withTilde, MAX_ASSET_SIZE, MAX_UPLOAD_CHUNK_SIZE, MAX_UPLOAD_ATTEMPTS, CONCURRENT_UPLOADS } from './index.mjs'
+import { withTilde, MAX_ASSET_SIZE, MAX_UPLOAD_CHUNK_SIZE, MAX_UPLOAD_ATTEMPTS, UPLOAD_RETRY_DELAY, CONCURRENT_UPLOADS } from './index.mjs'
 import prettyBytes from 'pretty-bytes'
 import { gzipSize as getGzipSize } from 'gzip-size'
 
@@ -168,6 +168,7 @@ export async function uploadAssetsToCloudflare(files, cloudflareUploadJwt, onPro
           Authorization: `Bearer ${cloudflareUploadJwt}`
         },
         retry: MAX_UPLOAD_ATTEMPTS,
+        retryDelay: UPLOAD_RETRY_DELAY,
         body: filesInChunk.map(file => ({
           path: file.path,
           key: file.hash,
