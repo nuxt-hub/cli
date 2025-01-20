@@ -186,6 +186,14 @@ export async function uploadAssetsToCloudflare(files, cloudflareUploadJwt, onPro
           onProgress({ progress: filesUploaded, progressSize, total: files.length, totalSize })
         }
       })
+      .catch((err) => {
+        if (err.data) {
+          throw new Error(`Error while uploading assets to Cloudflare: ${JSON.stringify(err.data)} - ${err.message}`)
+        }
+        else {
+          throw new Error(`Error while uploading assets to Cloudflare: ${err.message.split(' - ')[1] || err.message}`)
+        }
+      })
     }))
   }
 }
