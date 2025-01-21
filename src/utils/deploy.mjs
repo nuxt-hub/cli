@@ -114,7 +114,7 @@ export async function getFile(storage, path, encoding = 'utf-8') {
     size: dataAsBuffer.length,
     gzipSize,
     encoding,
-    hash: hashFile(data),
+    hash: hashFile(path, data),
     contentType: mime.getType(path) || 'application/octet-stream'
   }
 }
