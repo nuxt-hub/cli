@@ -13,6 +13,7 @@ export const NUXT_HUB_URL = process.env.NUXT_HUB_URL || INITIAL_CONFIG.hub?.url 
 export const MAX_ASSET_SIZE = 25 * 1024 * 1024
 export const MAX_UPLOAD_CHUNK_SIZE = 10 * 1024 * 1024 // 10MiB chunk size (in bytes)
 export const MAX_UPLOAD_ATTEMPTS = 5
+export const UPLOAD_RETRY_DELAY = 1000
 export const CONCURRENT_UPLOADS = 5
 
 export function loadUserConfig () {

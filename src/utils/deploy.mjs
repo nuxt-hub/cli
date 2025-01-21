@@ -1,17 +1,19 @@
 import { createHash } from 'node:crypto'
 import { access } from 'node:fs/promises'
+import { extname } from 'pathe'
 import { joinURL } from 'ufo'
 import { ofetch } from 'ofetch'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import mime from 'mime'
-import { withTilde, MAX_ASSET_SIZE, MAX_UPLOAD_CHUNK_SIZE, MAX_UPLOAD_ATTEMPTS, CONCURRENT_UPLOADS } from './index.mjs'
+import { withTilde, MAX_ASSET_SIZE, MAX_UPLOAD_CHUNK_SIZE, MAX_UPLOAD_ATTEMPTS, UPLOAD_RETRY_DELAY, CONCURRENT_UPLOADS } from './index.mjs'
 import prettyBytes from 'pretty-bytes'
 import { gzipSize as getGzipSize } from 'gzip-size'
 
-export function hashFile(data) {
+export function hashFile(filePath, data) {
+  const extension = extname(filePath).substring(1)
   return createHash('sha256')
-    .update(data)
+    .update(data + extension)
     .digest('hex')
     .slice(0, 32) // required by Cloudflare
 }
@@ -112,7 +114,7 @@ export async function getFile(storage, path, encoding = 'utf-8') {
     size: dataAsBuffer.length,
     gzipSize,
     encoding,
-    hash: hashFile(data),
+    hash: hashFile(path, data),
     contentType: mime.getType(path) || 'application/octet-stream'
   }
 }
@@ -168,6 +170,7 @@ export async function uploadAssetsToCloudflare(files, cloudflareUploadJwt, onPro
           Authorization: `Bearer ${cloudflareUploadJwt}`
         },
         retry: MAX_UPLOAD_ATTEMPTS,
+        retryDelay: UPLOAD_RETRY_DELAY,
         body: filesInChunk.map(file => ({
           path: file.path,
           key: file.hash,
@@ -183,6 +186,14 @@ export async function uploadAssetsToCloudflare(files, cloudflareUploadJwt, onPro
           filesUploaded += filesInChunk.length
           progressSize += filesInChunk.reduce((acc, file) => acc + file.size, 0)
           onProgress({ progress: filesUploaded, progressSize, total: files.length, totalSize })
+        }
+      })
+      .catch((err) => {
+        if (err.data) {
+          throw new Error(`Error while uploading assets to Cloudflare: ${JSON.stringify(err.data)} - ${err.message}`)
+        }
+        else {
+          throw new Error(`Error while uploading assets to Cloudflare: ${err.message.split(' - ')[1] || err.message}`)
         }
       })
     }))
