@@ -206,14 +206,12 @@ export default defineCommand({
       })
     } catch (err) {
       spinner.fail(`Failed to deploy ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}.`)
-      console.log('err', err)
-      // Error with workers size limit
-      if (err.data?.data?.name === 'ZodError') {
-        consola.error(err.data.data.issues)
+      consola.debug(err, err.data)
+
+      if (err.data) {
+        consola.error(err.data.data?.issues || err.data.statusMessage || err.data.message || err.data)
       }
-      else if (err.message.includes('Error: ')) {
-        consola.error(err.message.split('Error: ')[1])
-      } else {
+      else {
         consola.error(err.message.split(' - ')[1] || err.message)
       }
       process.exit(1)
@@ -306,4 +304,3 @@ export default defineCommand({
     process.exit(0)
   },
 })
-
