@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { access } from 'node:fs/promises'
+import { extname } from 'pathe'
 import { joinURL } from 'ufo'
 import { ofetch } from 'ofetch'
 import { createStorage } from 'unstorage'
@@ -9,9 +10,10 @@ import { withTilde, MAX_ASSET_SIZE, MAX_UPLOAD_CHUNK_SIZE, MAX_UPLOAD_ATTEMPTS, 
 import prettyBytes from 'pretty-bytes'
 import { gzipSize as getGzipSize } from 'gzip-size'
 
-export function hashFile(data) {
+export function hashFile(filePath, data) {
+  const extension = extname(filePath).substring(1)
   return createHash('sha256')
-    .update(data)
+    .update(data + extension)
     .digest('hex')
     .slice(0, 32) // required by Cloudflare
 }
@@ -112,7 +114,7 @@ export async function getFile(storage, path, encoding = 'utf-8') {
     size: dataAsBuffer.length,
     gzipSize,
     encoding,
-    hash: hashFile(data),
+    hash: hashFile(path, data),
     contentType: mime.getType(path) || 'application/octet-stream'
   }
 }
