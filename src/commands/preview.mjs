@@ -15,7 +15,7 @@ export default defineCommand({
   args: {
     cwd: {
       type: 'positional',
-      description: 'The directory to build and preview.',
+      description: 'The directory of the application to preview.',
       required: false,
       default: '.'
     },
