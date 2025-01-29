@@ -126,11 +126,17 @@ export const META_PATHS = [
   '/nitro.json',
   '/hub.config.json',
   '/wrangler.toml',
+  '/package-lock.json',
+  '/package.json'
 ]
 
 export const isMetaPath = (path) => META_PATHS.includes(path)
 export const isServerPath = (path) => path.startsWith('/_worker.js/')
 export const isPublicPath = (path) => !isMetaPath(path) && !isServerPath(path)
+
+export const isWorkerMetaPath = (path) => META_PATHS.includes(path)
+export const isWorkerPublicPath = (path) => path.startsWith('/public/')
+export const isWorkerServerPath = (path) => path.startsWith('/server/')
 
 /**
  * Get all public files with their metadata
@@ -143,9 +149,18 @@ export async function getPublicFiles(storage, paths) {
     paths.filter(isPublicPath).map(p => getFile(storage, p, 'base64'))
   )
 }
+export async function getWorkerPublicFiles(storage, paths) {
+  const files = await Promise.all(
+    paths.filter(isWorkerPublicPath).map(p => getFile(storage, p, 'base64'))
+  )
+  return files.map((file) => ({
+    ...file,
+    path: file.path.replace('/public/', '/')
+  }))
+}
 
 /**
- * Upload assets to Cloudflare with concurrent uploads
+ * Upload assets to Cloudflare Pages with concurrent uploads
  * @param {Array<{ path: string, data: string, hash: string, contentType: string }>} files - Files to upload
  * @param {string} cloudflareUploadJwt - Cloudflare upload JWT
  * @param {Function} onProgress - Callback function to update progress
@@ -200,4 +215,61 @@ export async function uploadAssetsToCloudflare(files, cloudflareUploadJwt, onPro
   }
 }
 
-// async function uploadToCloudflare(body, cloudflareUploadJwt) {
+
+/**
+ * Upload assets to Cloudflare Workers with concurrent uploads
+ * @param {Array<string<string>} buckets - Buckets of hashes to upload
+ * @param {Array<{ path: string, data: string, hash: string, contentType: string }>} files - Files to upload
+ * @param {string} cloudflareUploadJwt - Cloudflare upload JWT
+ * @param {Function} onProgress - Callback function to update progress
+ */
+export async function uploadWorkersAssetsToCloudflare(accountId, files, cloudflareUploadJwt, onProgress) {
+  const chunks = await createChunks(files)
+  if (!chunks.length) {
+    return
+  }
+
+  let filesUploaded = 0
+  let progressSize = 0
+  let completionToken
+  const totalSize = files.reduce((acc, file) => acc + file.size, 0)
+  for (let i = 0; i < chunks.length; i += CONCURRENT_UPLOADS) {
+    const chunkGroup = chunks.slice(i, i + CONCURRENT_UPLOADS)
+
+    await Promise.all(chunkGroup.map(async (filesInChunk) => {
+      const form = new FormData()
+      for (const file of filesInChunk) {
+        form.append(file.hash, new File([file.data], file.hash, { type: file.contentType}), file.hash)
+      }
+      return ofetch(`/accounts/${accountId}/workers/assets/upload?base64=true`, {
+        baseURL: 'https://api.cloudflare.com/client/v4/',
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cloudflareUploadJwt}`
+        },
+        retry: MAX_UPLOAD_ATTEMPTS,
+        retryDelay: UPLOAD_RETRY_DELAY,
+        body: form
+      })
+      .then((data) => {
+        if (data && data.result?.jwt) {
+          completionToken = data.result.jwt
+        }
+        if (typeof onProgress === 'function') {
+          filesUploaded += filesInChunk.length
+          progressSize += filesInChunk.reduce((acc, file) => acc + file.size, 0)
+          onProgress({ progress: filesUploaded, progressSize, total: files.length, totalSize })
+        }
+      })
+      .catch((err) => {
+        if (err.data) {
+          throw new Error(`Error while uploading assets to Cloudflare: ${JSON.stringify(err.data)} - ${err.message}`)
+        }
+        else {
+          throw new Error(`Error while uploading assets to Cloudflare: ${err.message.split(' - ')[1] || err.message}`)
+        }
+      })
+    }))
+  }
+  return completionToken
+}
