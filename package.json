@@ -38,14 +38,14 @@
     "execa": "^9.5.2",
     "get-port-please": "^3.1.2",
     "gzip-size": "^7.0.0",
-    "h3": "^1.13.1",
+    "h3": "^1.14.0",
     "listhen": "^1.9.0",
     "load-json-file": "^7.0.1",
     "mime": "^4.0.6",
     "ofetch": "^1.4.1",
     "open": "^10.1.0",
     "ora": "^8.1.1",
-    "pathe": "^2.0.1",
+    "pathe": "^2.0.2",
     "pretty-bytes": "^6.1.1",
     "rc9": "^2.1.2",
     "signal-exit": "^4.1.0",
@@ -56,8 +56,8 @@
   },
   "devDependencies": {
     "@nuxt/eslint-config": "^0.7.5",
-    "eslint": "^9.18.0",
-    "release-it": "^18.1.1"
+    "eslint": "^9.19.0",
+    "release-it": "^18.1.2"
   },
   "release-it": {
     "git": {
