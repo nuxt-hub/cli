@@ -35,7 +35,7 @@ export function projectPath() {
 }
 
 export function withTilde(path) {
-  return path.replace(homedir(), '~').replace('~/', '~')
+  return path.replace(homedir(), '~/').replace(/\/{2,}/, '/')
 }
 
 export async function getPackageJson(cwd) {
