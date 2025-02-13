@@ -11,6 +11,7 @@ import { $api, fetchUser, selectTeam, selectProject, projectPath, fetchProject, 
 import { getStorage, getPathsToDeploy, getFile, uploadAssetsToCloudflare, isMetaPath, isServerPath, getPublicFiles } from '../utils/deploy.mjs'
 import { createMigrationsTable, fetchRemoteMigrations, queryDatabase } from '../utils/database.mjs'
 import login from './login.mjs'
+import ensure from './ensure.mjs'
 
 export default defineCommand({
   meta: {
@@ -110,8 +111,7 @@ export default defineCommand({
       const pkg = await getPackageJson(cwd)
       const deps = Object.assign({}, pkg.dependencies, pkg.devDependencies)
       if (!deps['@nuxthub/core']) {
-        consola.error('`@nuxthub/core` is not installed, make sure to install it with `npx nuxt module add hub`')
-        process.exit(1)
+        await runCommand(ensure, { cwd })
       }
       const nuxiBuildArgs = []
       if (args.dotenv) {
