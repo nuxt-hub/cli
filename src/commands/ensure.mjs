@@ -27,7 +27,7 @@ export default defineCommand({
     
     if (!nuxtConfig.modules.includes('@nuxthub/core')) {
       consola.info('@nuxthub/core module is not installed, installing...')
-      await execa('npx', ['nuxi@latest', 'module', 'add', 'hub'], { cwd, stdio: 'inherit' })
+      await execa('npx', ['nuxi@3.20.0', 'module', 'add', 'hub'], { cwd, stdio: 'inherit' })
     }
 
     consola.success('NuxtHub Core module is installed and registered in the project.')
