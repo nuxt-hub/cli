@@ -17,6 +17,9 @@ jobs:
           node-version: 20
           cache: "pnpm"
 
+      - name: corepack workaround
+        run: npm i -g --force corepack && corepack enable
+
       - name: Install dependencies
         run: pnpm install
 
