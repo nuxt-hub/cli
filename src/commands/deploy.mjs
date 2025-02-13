@@ -109,7 +109,7 @@ export default defineCommand({
     if (args.build) {
       consola.info('Building the Nuxt project...')
       // Ensure the NuxtHub Core module is installed and registered in the project
-      await runCommand(ensure, { cwd })
+      await runCommand(ensure, { rawArgs: [cwd] })
 
       const nuxiBuildArgs = []
       if (args.dotenv) {
