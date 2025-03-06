@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import { readFile, writeFile } from 'node:fs/promises'
 import { join } from 'pathe'
 import { config } from 'dotenv'
+import { createJiti } from 'jiti'
 
 // Load project .env
 config()
@@ -35,12 +36,32 @@ export function projectPath() {
 }
 
 export function withTilde(path) {
-  return path.replace(homedir(), '~').replace('~/', '~')
+  return path.replace(homedir(), '~/').replace(/\/{2,}/, '/')
 }
 
 export async function getPackageJson(cwd) {
   const path = join(cwd || process.cwd(), 'package.json')
   return JSON.parse(await readFile(path, 'utf-8'))
+}
+
+export async function getNuxtConfig(rootDir) {
+  try {
+    const jiti = createJiti(rootDir, {
+      interopDefault: true,
+      // allow using `~` and `@` in `nuxt.config`
+      alias: {
+        '~': rootDir,
+        '@': rootDir,
+      },
+    })
+    globalThis.defineNuxtConfig = (c) => c
+    const result = await jiti.import('./nuxt.config', { default: true })
+    delete globalThis.defineNuxtConfig
+    return result
+  }
+  catch {
+    return {}
+  }
 }
 
 export async function linkProject(project) {

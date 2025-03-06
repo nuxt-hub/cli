@@ -35,6 +35,7 @@ COMMANDS
     logs      Display the logs of a deployment.                                 
   whoami      Shows the username of the currently logged in user.
   database    Manage database migrations.               
+  ensure    Ensure the NuxtHub Core module is installed and registered in the project.
 
 Use nuxthub <command> --help for more information about a command.
 ```

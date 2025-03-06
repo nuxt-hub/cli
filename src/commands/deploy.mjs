@@ -7,10 +7,11 @@ import { defineCommand, runCommand } from 'citty'
 import { join, resolve, relative } from 'pathe'
 import { execa } from 'execa'
 import { setupDotenv } from 'c12'
-import { $api, fetchUser, selectTeam, selectProject, projectPath, fetchProject, linkProject, gitInfo, getPackageJson } from '../utils/index.mjs'
+import { $api, fetchUser, selectTeam, selectProject, projectPath, fetchProject, linkProject, gitInfo } from '../utils/index.mjs'
 import { getStorage, getPathsToDeploy, getFile, uploadAssetsToCloudflare, uploadWorkersAssetsToCloudflare, isMetaPath, isWorkerMetaPath, isServerPath, isWorkerServerPath, getPublicFiles, getWorkerPublicFiles } from '../utils/deploy.mjs'
 import { createMigrationsTable, fetchRemoteMigrations, queryDatabase } from '../utils/database.mjs'
 import login from './login.mjs'
+import ensure from './ensure.mjs'
 
 export default defineCommand({
   meta: {
@@ -107,12 +108,9 @@ export default defineCommand({
     // #region Build
     if (args.build) {
       consola.info('Building the Nuxt project...')
-      const pkg = await getPackageJson(cwd)
-      const deps = Object.assign({}, pkg.dependencies, pkg.devDependencies)
-      if (!deps['@nuxthub/core']) {
-        consola.error('`@nuxthub/core` is not installed, make sure to install it with `npx nuxt module add hub`')
-        process.exit(1)
-      }
+      // Ensure the NuxtHub Core module is installed and registered in the project
+      await runCommand(ensure, { rawArgs: [cwd] })
+
       const nuxiBuildArgs = []
       if (args.dotenv) {
         nuxiBuildArgs.push(`--dotenv=${args.dotenv}`)
