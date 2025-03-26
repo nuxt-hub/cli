@@ -103,7 +103,7 @@ export function getPathsToDeploy(fileKeys) {
 export async function getFile(storage, path, encoding = 'utf-8') {
   const dataAsBuffer = await storage.getItemRaw(path)
   if (dataAsBuffer.length > MAX_ASSET_SIZE) {
-    throw new Error(`NuxtHub deploy only supports files up to ${prettyBytes(MAX_ASSET_SIZE, { binary: true })} in size\n${withTilde(path)} is ${prettyBytes(dataAsBuffer.size, { binary: true })} in size`)
+    throw new Error(`NuxtHub deploy only supports files up to ${prettyBytes(MAX_ASSET_SIZE, { binary: true })} in size\n${withTilde(path)} is ${prettyBytes(dataAsBuffer.length, { binary: true })} in size`)
   }
   const gzipSize = await getGzipSize(dataAsBuffer)
   const data = dataAsBuffer.toString(encoding)

@@ -330,8 +330,8 @@ export default defineCommand({
       if (err.data?.data?.name === 'ZodError') {
         consola.error(err.data.data.issues)
       }
-      else if (err.message.includes('Error: ')) {
-        consola.error(err.message.split('Error: ')[1])
+      else if (err.message.includes('- Error: ')) {
+        consola.error(err.message.split('- Error: ')[1])
       } else {
         consola.error(err.message.split(' - ')[1] || err.message)
       }
