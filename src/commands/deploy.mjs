@@ -135,6 +135,10 @@ export default defineCommand({
     const fileKeys = await storage.getKeys()
     const pathsToDeploy = getPathsToDeploy(fileKeys)
     const config = await storage.getItem('hub.config.json')
+    if (!config.nitroPreset && linkedProject.type === 'worker') {
+      consola.error('Please upgrade `@nuxthub/core` to the latest version to deploy to a worker project.')
+      process.exit(1)
+    }
     const isWorkerPreset = ['cloudflare_module', 'cloudflare_durable', 'cloudflare-module', 'cloudflare-durable'].includes(config.nitroPreset)
     const { format: formatNumber } = new Intl.NumberFormat('en-US')
 
