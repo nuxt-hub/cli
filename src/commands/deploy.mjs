@@ -105,6 +105,16 @@ export default defineCommand({
     consola.success(`Connected to ${colors.blueBright(linkedProject.teamSlug)} team.`)
     consola.success(`Linked to ${colors.blueBright(linkedProject.slug)} project.`)
 
+    if (linkedProject.type === 'worker' && deployEnv === 'preview') {
+      consola.warn('Currently NuxtHub on Workers (BETA) does not support preview environments.')
+      const shouldDeploy = await confirm({
+        message: `Deploy ${colors.blueBright(projectPath())} to production instead?`
+      })
+      if (!shouldDeploy || isCancel(shouldDeploy)) {
+        return consola.log('Cancelled.')
+      }
+    }
+
     // #region Build
     if (args.build) {
       consola.info('Building the Nuxt project...')
