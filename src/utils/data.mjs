@@ -131,6 +131,15 @@ export async function selectProject(team) {
     })
     if (isCancel(projectName)) return null
     projectName = projectName || defaultProjectName
+    const projectType = await select({
+      message: 'Select your project type',
+      initialValue: 'pages',
+      options: [
+        { label: 'Cloudflare Pages', value: 'pages' },
+        { label: 'Cloudflare Workers (beta)', value: 'worker' },
+      ]
+    })
+    if (isCancel(projectType)) return null
     const projectLocation = await select({
       message: 'Select a region for the storage',
       initialValue: 'weur',
@@ -159,6 +168,7 @@ export async function selectProject(team) {
       method: 'POST',
       body: {
         name: projectName,
+        type: projectType,
         location: projectLocation,
         productionBranch: productionBranch || defaultProductionBranch
       }

@@ -13,7 +13,7 @@ export function generateWrangler(hub, { preset } = {}) {
     if (preset === 'cloudflare-durable') {
       wrangler.durable_objects ||= {}
       wrangler.durable_objects.bindings = [{ name: '$DurableObject', class_name: '$DurableObject' }]
-      wrangler.migrations = [{ tag: 'v1', new_classes: ['$DurableObject'] }]
+      wrangler.migrations = [{ tag: 'v1', new_sqlite_classes: ['$DurableObject'] }]
     }
   }
 

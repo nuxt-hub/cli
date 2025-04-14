@@ -19,6 +19,13 @@ export default defineCommand({
       required: false,
       default: '.'
     },
+    'log-level': {
+      type: 'string',
+      description: 'The log level to use.',
+      required: false,
+      default: 'log',
+      valueHint: 'debug, info, log, warn, error, none'
+    }
   },
   async run({ args }) {
     const cmdCwd = process.cwd()
@@ -75,13 +82,17 @@ export default defineCommand({
       }
       throw err
     }
+    const wranglerArgs = []
+    if (args['log-level']) {
+      wranglerArgs.push(`--log-level=${args['log-level']}`)
+    }
     if (nitroConfig.preset === 'cloudflare-pages') {
       consola.info(`Starting \`wrangler pages dev .\` command...`)
-      await execa(options)`wrangler pages dev .`
+      await execa(options)`wrangler pages dev . ${wranglerArgs}`
         .catch(cmdError)
     } else {
       consola.info(`Starting \`wrangler dev\` command...`)
-      await execa(options)`wrangler dev`
+      await execa(options)`wrangler dev ${wranglerArgs}`
         .catch(cmdError)
     }
 

@@ -8,7 +8,7 @@ import { join, resolve, relative } from 'pathe'
 import { execa } from 'execa'
 import { setupDotenv } from 'c12'
 import { $api, fetchUser, selectTeam, selectProject, projectPath, fetchProject, linkProject, gitInfo } from '../utils/index.mjs'
-import { getStorage, getPathsToDeploy, getFile, uploadAssetsToCloudflare, isMetaPath, isServerPath, getPublicFiles } from '../utils/deploy.mjs'
+import { getStorage, getPathsToDeploy, getFile, uploadAssetsToCloudflare, uploadWorkersAssetsToCloudflare, isMetaPath, isWorkerMetaPath, isServerPath, isWorkerServerPath, getPublicFiles, getWorkerPublicFiles } from '../utils/deploy.mjs'
 import { createMigrationsTable, fetchRemoteMigrations, queryDatabase } from '../utils/database.mjs'
 import login from './login.mjs'
 import ensure from './ensure.mjs'
@@ -105,6 +105,16 @@ export default defineCommand({
     consola.success(`Connected to ${colors.blueBright(linkedProject.teamSlug)} team.`)
     consola.success(`Linked to ${colors.blueBright(linkedProject.slug)} project.`)
 
+    if (linkedProject.type === 'worker' && deployEnv === 'preview') {
+      consola.warn('Currently NuxtHub on Workers (BETA) does not support preview environments.')
+      const shouldDeploy = await confirm({
+        message: `Deploy ${colors.blueBright(projectPath())} to production instead?`
+      })
+      if (!shouldDeploy || isCancel(shouldDeploy)) {
+        return consola.log('Cancelled.')
+      }
+    }
+
     // #region Build
     if (args.build) {
       consola.info('Building the Nuxt project...')
@@ -135,6 +145,11 @@ export default defineCommand({
     const fileKeys = await storage.getKeys()
     const pathsToDeploy = getPathsToDeploy(fileKeys)
     const config = await storage.getItem('hub.config.json')
+    if (!config.nitroPreset && linkedProject.type === 'worker') {
+      consola.error('Please upgrade `@nuxthub/core` to the latest version to deploy to a worker project.')
+      process.exit(1)
+    }
+    const isWorkerPreset = ['cloudflare_module', 'cloudflare_durable', 'cloudflare-module', 'cloudflare-durable'].includes(config.nitroPreset)
     const { format: formatNumber } = new Intl.NumberFormat('en-US')
 
     let spinner = ora(`Preparing ${colors.blueBright(linkedProject.slug)} deployment for ${deployEnvColored}...`).start()
@@ -145,40 +160,64 @@ export default defineCommand({
       spinnerColorIndex = (spinnerColorIndex + 1) % spinnerColors.length
     }, 2500)
 
-    let deploymentKey, serverFiles, metaFiles
+    let deploymentKey, serverFiles, metaFiles, completionToken
     try {
-      const publicFiles = await getPublicFiles(storage, pathsToDeploy)
+      let url = `/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/prepare`
+      let publicFiles, publicManifest
 
-      const deploymentInfo = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/prepare`, {
+      if (isWorkerPreset) {
+        url = `/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/worker/prepare`
+        publicFiles = await getWorkerPublicFiles(storage, pathsToDeploy)
+        /**
+         * {  "/index.html": { hash: "hash", size: 30 }
+         */
+        publicManifest = publicFiles.reduce((acc, file) => {
+          acc[file.path] = {
+            hash: file.hash,
+            size: file.size
+          }
+          return acc
+        }, {})
+      } else {
+        publicFiles = await getPublicFiles(storage, pathsToDeploy)
+        /**
+         * {  "/index.html": "hash" }
+         */
+        publicManifest = publicFiles.reduce((acc, file) => {
+          acc[file.path] = file.hash
+          return acc
+        }, {})
+      }
+      // Get deployment info by preparing the deployment
+      const deploymentInfo = await $api(url, {
         method: 'POST',
         body: {
           config,
-          /**
-           * Public manifest is a map of file paths to their unique hash (SHA256 sliced to 32 characters).
-           * @example
-           * {
-           *   "/index.html": "hash",
-           *   "/assets/image.png": "hash"
-           * }
-           */
-          publicManifest: publicFiles.reduce((acc, file) => {
-            acc[file.path] = file.hash
-            return acc
-          }, {})
+          publicManifest
         }
       })
       spinner.succeed(`${colors.blueBright(linkedProject.slug)} ready to deploy.`)
-      const { missingPublicHashes, cloudflareUploadJwt } = deploymentInfo
       deploymentKey = deploymentInfo.deploymentKey
+
+      const { cloudflareUploadJwt, buckets, accountId } = deploymentInfo
+      // missingPublicHash is sent for pages & buckets for worker
+      let missingPublicHashes = deploymentInfo.missingPublicHashes || buckets.flat()
       const publicFilesToUpload = publicFiles.filter(file => missingPublicHashes.includes(file.hash))
 
       if (publicFilesToUpload.length) {
         const totalSizeToUpload = publicFilesToUpload.reduce((acc, file) => acc + file.size, 0)
         spinner = ora(`Uploading ${colors.blueBright(formatNumber(publicFilesToUpload.length))} new static assets (${colors.blueBright(prettyBytes(totalSizeToUpload))})...`).start()
-        await uploadAssetsToCloudflare(publicFilesToUpload, cloudflareUploadJwt, ({ progressSize, totalSize }) => {
-          const percentage = Math.round((progressSize / totalSize) * 100)
-          spinner.text = `${percentage}% uploaded (${prettyBytes(progressSize)}/${prettyBytes(totalSize)})...`
-        })
+        if (linkedProject.type === 'pages') {
+          await uploadAssetsToCloudflare(publicFilesToUpload, cloudflareUploadJwt, ({ progressSize, totalSize }) => {
+            const percentage = Math.round((progressSize / totalSize) * 100)
+            spinner.text = `${percentage}% uploaded (${prettyBytes(progressSize)}/${prettyBytes(totalSize)})...`
+          })
+        } else {
+          completionToken = await uploadWorkersAssetsToCloudflare(accountId, publicFilesToUpload, cloudflareUploadJwt, ({ progressSize, totalSize }) => {
+            const percentage = Math.round((progressSize / totalSize) * 100)
+            spinner.text = `${percentage}% uploaded (${prettyBytes(progressSize)}/${prettyBytes(totalSize)})...`
+          })
+        }
         spinner.succeed(`${colors.blueBright(formatNumber(publicFilesToUpload.length))} new static assets uploaded (${colors.blueBright(prettyBytes(totalSizeToUpload))})`)
       }
 
@@ -188,8 +227,14 @@ export default defineCommand({
         consola.info(`${colors.blueBright(formatNumber(publicFiles.length))} static assets (${colors.blueBright(prettyBytes(totalSize))} / ${colors.blueBright(prettyBytes(totalGzipSize))} gzip)`)
       }
 
-      metaFiles = await Promise.all(pathsToDeploy.filter(isMetaPath).map(p => getFile(storage, p, 'base64')))
-      serverFiles = await Promise.all(pathsToDeploy.filter(isServerPath).map(p => getFile(storage, p, 'base64')))
+      metaFiles = await Promise.all(pathsToDeploy.filter(isWorkerPreset ? isWorkerMetaPath : isMetaPath).map(p => getFile(storage, p, 'base64')))
+      serverFiles = await Promise.all(pathsToDeploy.filter(isWorkerPreset ? isWorkerServerPath : isServerPath).map(p => getFile(storage, p, 'base64')))
+      if (isWorkerPreset) {
+        serverFiles = serverFiles.map(file => ({
+          ...file,
+          path: file.path.replace('/server/', '/')
+        }))
+      }
       const serverFilesSize = serverFiles.reduce((acc, file) => acc + file.size, 0)
       const serverFilesGzipSize = serverFiles.reduce((acc, file) => acc + file.gzipSize, 0)
       consola.info(`${colors.blueBright(formatNumber(serverFiles.length))} server files (${colors.blueBright(prettyBytes(serverFilesSize))} / ${colors.blueBright(prettyBytes(serverFilesGzipSize))} gzip)...`)
@@ -284,13 +329,14 @@ export default defineCommand({
 
     // #region Complete deployment
     spinner = ora(`Deploying ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}...`).start()
-    const deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/complete`, {
+    const deployment = await $api(`/teams/${linkedProject.teamSlug}/projects/${linkedProject.slug}/${deployEnv}/deploy/${isWorkerPreset ? 'worker/complete' : 'complete'}`, {
       method: 'POST',
       body: {
         deploymentKey,
         git,
         serverFiles,
-        metaFiles
+        metaFiles,
+        completionToken
       },
     }).catch((err) => {
       spinner.fail(`Failed to deploy ${colors.blueBright(linkedProject.slug)} to ${deployEnvColored}.`)
