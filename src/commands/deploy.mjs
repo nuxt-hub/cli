@@ -243,7 +243,8 @@ export default defineCommand({
       consola.debug(err, err.data)
 
       if (err.data) {
-        consola.error(err.data.data?.issues || err.data.statusMessage || err.data.message || err.data)
+        const message = err.data.statusMessage && err.data.message ? `${err.data.statusMessage} - ${err.data.message}` : (err.data.statusMessage || err.data.message)
+        consola.error(err.data.data?.issues || message || err.data)
       }
       else {
         consola.error(err.message.split(' - ')[1] || err.message)
