@@ -19,6 +19,7 @@ import open from './commands/open.mjs'
 import manage from './commands/manage.mjs'
 import database from './commands/database.mjs'
 import ensure from './commands/ensure.mjs'
+import enable from './commands/enable.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pkg = loadJsonFileSync(resolve(__dirname, '../package.json'))
@@ -48,7 +49,8 @@ const main = defineCommand({
     logs,
     whoami,
     database,
-    ensure
+    ensure,
+    enable
   },
 })
 
