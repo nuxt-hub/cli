@@ -19,12 +19,13 @@ npx nuxthub <command>
 ## Usage
 
 ```bash
-USAGE nuxthub init|deploy|link|unlink|open|manage|login|logout|logs|whoami|database|ensure|enable
+USAGE nuxthub init|deploy|disable|link|unlink|open|manage|login|logout|logs|whoami|database|ensure|enable
 
 COMMANDS
 
     init      Initialize a fresh NuxtHUb project, alias of nuxi init -t hub.  
   deploy      Deploy your project to NuxtHub.                                   
+ disable      Disable a specific NuxtHub feature in your project.                                   
  preview      Preview your project locally (using wrangler pages dev).   
     link      Link a local directory to a NuxtHub project.                      
   unlink      Unlink a local directory from a NuxtHub project.                  
@@ -34,7 +35,7 @@ COMMANDS
   logout      Logout the current authenticated user.                            
     logs      Display the logs of a deployment.                                 
   whoami      Shows the username of the currently logged in user.
-  database    Manage database migrations.               
+database      Manage database migrations.               
   ensure      Ensure the NuxtHub Core module is installed and registered in the project.
   enable      Enable a specific NuxtHub feature in your project.
 
