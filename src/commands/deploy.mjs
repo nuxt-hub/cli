@@ -7,7 +7,7 @@ import { defineCommand, runCommand } from 'citty'
 import { join, resolve, relative } from 'pathe'
 import { execa } from 'execa'
 import { setupDotenv } from 'c12'
-import { $api, fetchUser, selectTeam, selectProject, projectPath, fetchProject, linkProject, gitInfo } from '../utils/index.mjs'
+import { $api, fetchUser, selectTeam, selectProject, projectPath, fetchProject, linkProject, gitInfo, determineEnvironment } from '../utils/index.mjs'
 import { getStorage, getPathsToDeploy, getFile, uploadAssetsToCloudflare, uploadWorkersAssetsToCloudflare, isMetaPath, isWorkerMetaPath, isServerPath, isWorkerServerPath, getPublicFiles, getWorkerPublicFiles } from '../utils/deploy.mjs'
 import { createMigrationsTable, fetchRemoteMigrations, queryDatabase } from '../utils/database.mjs'
 import login from './login.mjs'
@@ -39,6 +39,11 @@ export default defineCommand({
       type: 'boolean',
       description: 'Force the current deployment as preview.',
       default: false
+    },
+    env: {
+      type: 'string',
+      description: 'Force the environment of the current deployment. Available for Workers projects only.',
+      default: ''
     },
     dotenv: {
       type: 'string',
@@ -92,6 +97,7 @@ export default defineCommand({
     // Default to main branch
     git.branch = git.branch || 'main'
     let deployEnv = git.branch === linkedProject.productionBranch ? 'production' : 'preview'
+
     if (args.production) {
       git.branch = linkedProject.productionBranch
       deployEnv = 'production'
@@ -100,20 +106,19 @@ export default defineCommand({
         git.branch += '-preview'
       }
       deployEnv = 'preview'
+    } else if (linkedProject.type === 'worker' && args.env) {
+      deployEnv = args.env
+    } else if (linkedProject.type === 'worker' && git.branch !== linkedProject.productionBranch) {
+      deployEnv = await determineEnvironment(linkedProject.teamSlug, linkedProject.slug, git.branch)
     }
-    const deployEnvColored = deployEnv === 'production' ? colors.greenBright(deployEnv) : colors.yellowBright(deployEnv)
+
+    const deployEnvColored = deployEnv === 'production'
+      ? colors.greenBright(deployEnv)
+      : deployEnv === 'preview'
+        ? colors.yellowBright(deployEnv)
+        : colors.blueBright(deployEnv) // additional environments
     consola.success(`Connected to ${colors.blueBright(linkedProject.teamSlug)} team.`)
     consola.success(`Linked to ${colors.blueBright(linkedProject.slug)} project.`)
-
-    if (linkedProject.type === 'worker' && deployEnv === 'preview') {
-      consola.warn('Currently NuxtHub on Workers (BETA) does not support preview environments.')
-      const shouldDeploy = await confirm({
-        message: `Deploy ${colors.blueBright(projectPath())} to production instead?`
-      })
-      if (!shouldDeploy || isCancel(shouldDeploy)) {
-        return consola.log('Cancelled.')
-      }
-    }
 
     // #region Build
     if (args.build) {
