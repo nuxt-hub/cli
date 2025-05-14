@@ -15,10 +15,12 @@ import logs from './commands/logs.mjs'
 import whoami from './commands/whoami.mjs'
 import preview from './commands/preview.mjs'
 import deploy from './commands/deploy.mjs'
+import disable from './commands/disable.mjs'
 import open from './commands/open.mjs'
 import manage from './commands/manage.mjs'
 import database from './commands/database.mjs'
 import ensure from './commands/ensure.mjs'
+import enable from './commands/enable.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pkg = loadJsonFileSync(resolve(__dirname, '../package.json'))
@@ -38,6 +40,7 @@ const main = defineCommand({
   subCommands: {
     init,
     deploy,
+    disable,
     preview,
     link,
     unlink,
@@ -48,7 +51,8 @@ const main = defineCommand({
     logs,
     whoami,
     database,
-    ensure
+    ensure,
+    enable
   },
 })
 
