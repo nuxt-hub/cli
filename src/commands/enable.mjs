@@ -2,7 +2,6 @@ import { consola } from 'consola'
 import { colors } from 'consola/utils'
 import { defineCommand } from 'citty'
 import { getNuxtConfig } from '../utils/index.mjs'
-import open from 'open'
 import { updateConfig } from 'c12/update'
 
 
@@ -67,7 +66,7 @@ function isValidFeature(feature) {
 function generateInitialConfig(featureKey, featureConfig) {
   let configContent = `export default defineNuxtConfig({`
 
-  // Add hub config if featureKey exists
+  // add hub config if featureKey exists
   if (featureKey) {
     configContent += `
   hub: {
@@ -75,9 +74,8 @@ function generateInitialConfig(featureKey, featureConfig) {
   }`
   }
 
-  // Add Nitro experimental configs if required
   if (featureConfig.nitroExperimental) {
-    // Add comma if we already have hub config
+    // add comma if we already have hub config
     configContent += featureKey ? `,` : ``
     configContent += `
   nitro: {
@@ -142,11 +140,6 @@ export default defineCommand({
       type: 'positional',
       description: 'The NuxtHub feature to enable (ai, autorag, blob, browser, cache, database, kv, openapi, realtime,  vectorize)',
       required: true,
-    },
-    docs: {
-      type: 'boolean',
-      description: 'Open the documentation after enabling the feature.',
-      default: false
     }
   },
   async run({ args }) {
@@ -165,7 +158,7 @@ export default defineCommand({
     const cwd = process.cwd()
     const nuxtConfig = await getNuxtConfig(cwd)
 
-    // Check if feature is already enabled
+    // check if feature is enabled
     if (isFeatureEnabled(nuxtConfig, featureConfig)) {
       consola.info(`NuxtHub ${colors.cyan(feature)} feature is already enabled in this project.`)
     } else {
@@ -179,24 +172,33 @@ export default defineCommand({
       }
 
       try {
+        let configCreated = false
         const { created } = await updateConfig({
           cwd,
           configFile: 'nuxt.config',
 
           // if the config file doesn't exist, create it
           onCreate: () => {
-            consola.info(`Creating new Nuxt config with ${colors.cyan(feature)} feature enabled...`)
+            configCreated = true
             return generateInitialConfig(featureKey, featureConfig)
           },
 
           onUpdate: (config) => {
-            // Check if feature is already enabled
+            if (configCreated) {
+              if (featureKey) {
+                config.hub = config.hub || {}
+                config.hub[featureKey] = true
+              }
+
+              applyAdditionalConfig(config, featureConfig)
+              return
+            }
+
             if (isFeatureEnabled(config, featureConfig)) {
               consola.info(`NuxtHub ${colors.cyan(feature)} feature is already enabled in this project.`)
               return false
             }
 
-            // Only update hub config if featureKey exists
             if (featureKey) {
               config.hub = config.hub || {}
               config.hub[featureKey] = true
@@ -219,14 +221,8 @@ export default defineCommand({
 
     const docsUrl = featureConfig.docs
 
-    // Check if we should show the documentation message
     if (!requiresConfig || !isFeatureEnabled(nuxtConfig, featureConfig)) {
       consola.info(`Learn more about the ${colors.cyan(feature)} feature at: ${colors.underline(docsUrl)}`)
-    }
-
-    if (args.docs) {
-      consola.info(`Opening documentation at ${colors.cyan(docsUrl)}...`)
-      open(docsUrl)
     }
 
     return 0
