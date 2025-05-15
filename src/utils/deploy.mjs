@@ -6,9 +6,10 @@ import { ofetch } from 'ofetch'
 import { createStorage } from 'unstorage'
 import fsDriver from 'unstorage/drivers/fs'
 import mime from 'mime'
-import { withTilde, MAX_ASSET_SIZE, MAX_UPLOAD_CHUNK_SIZE, MAX_UPLOAD_ATTEMPTS, UPLOAD_RETRY_DELAY, CONCURRENT_UPLOADS } from './index.mjs'
+import { withTilde, MAX_ASSET_SIZE, MAX_UPLOAD_CHUNK_SIZE, MAX_UPLOAD_ATTEMPTS, UPLOAD_RETRY_DELAY, CONCURRENT_UPLOADS, $api } from './index.mjs'
 import prettyBytes from 'pretty-bytes'
 import { gzipSize as getGzipSize } from 'gzip-size'
+import { consola } from 'consola'
 
 export function hashFile(filePath, data) {
   const extension = extname(filePath).substring(1)
@@ -272,4 +273,24 @@ export async function uploadWorkersAssetsToCloudflare(accountId, files, cloudfla
     }))
   }
   return completionToken
+}
+
+/**
+ * Determine the deployment environment based on the branch name for Workers projects
+ * @param {string} teamSlug - The team slug
+ * @param {string} projectSlug - The project slug
+ * @param {string} branch - The git branch name
+ * @returns {Promise<string>} The determined environment name
+ */
+export async function determineEnvironment(teamSlug, projectSlug, branch) {
+  try {
+    const result = await $api(`/teams/${teamSlug}/projects/${projectSlug}/deploy/environment?branch=${branch}`, {
+      method: 'GET'
+    })
+    return result.name
+  } catch (error) {
+    // If API call fails, default to preview
+    consola.error('Failed to determine environment:', error)
+    process.exit(1)
+  }
 }
