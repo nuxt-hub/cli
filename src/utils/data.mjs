@@ -135,8 +135,8 @@ export async function selectProject(team) {
       message: 'Select your project type',
       initialValue: 'pages',
       options: [
+        { label: 'Cloudflare Workers', value: 'worker' },
         { label: 'Cloudflare Pages', value: 'pages' },
-        { label: 'Cloudflare Workers (beta)', value: 'worker' },
       ]
     })
     if (isCancel(projectType)) return null
