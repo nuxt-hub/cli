@@ -130,7 +130,15 @@ export default defineCommand({
       if (args.dotenv) {
         nuxiBuildArgs.push(`--dotenv=${args.dotenv}`)
       }
-      await execa({ stdio: 'inherit', preferLocal: true, cwd, extendEnv: false, env: {} })`nuxi build ${nuxiBuildArgs}`
+      await execa({
+        stdio: 'inherit',
+        preferLocal: true,
+        cwd,
+        extendEnv: false,
+        env: {
+          REMOTE_PROJECT_TYPE: linkedProject.type === 'worker' ? 'workers' : 'pages'
+        }
+      })`nuxi build ${nuxiBuildArgs}`
         .catch((err) => {
           if (err.code === 'ENOENT') {
             consola.error('`nuxt` is not installed, please make sure that you are inside a Nuxt project.')
