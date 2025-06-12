@@ -19,12 +19,13 @@ npx nuxthub <command>
 ## Usage
 
 ```bash
-USAGE nuxthub init|deploy|link|unlink|open|manage|login|logout|logs|whoami
+USAGE nuxthub init|deploy|disable|link|unlink|open|manage|login|logout|logs|whoami|database|ensure|enable
 
 COMMANDS
 
     init      Initialize a fresh NuxtHUb project, alias of nuxi init -t hub.  
   deploy      Deploy your project to NuxtHub.                                   
+ disable      Disable a specific NuxtHub feature in your project.                                   
  preview      Preview your project locally (using wrangler pages dev).   
     link      Link a local directory to a NuxtHub project.                      
   unlink      Unlink a local directory from a NuxtHub project.                  
@@ -34,8 +35,9 @@ COMMANDS
   logout      Logout the current authenticated user.                            
     logs      Display the logs of a deployment.                                 
   whoami      Shows the username of the currently logged in user.
-  database    Manage database migrations.               
-  ensure    Ensure the NuxtHub Core module is installed and registered in the project.
+database      Manage database migrations.               
+  ensure      Ensure the NuxtHub Core module is installed and registered in the project.
+  enable      Enable a specific NuxtHub feature in your project.
 
 Use nuxthub <command> --help for more information about a command.
 ```
@@ -57,7 +59,7 @@ nuxthub deploy --preview
 
 See [how to deploy with a GitHub action](https://hub.nuxt.com/docs/getting-started/deploy#github-action).
 
-https://github.com/user-attachments/assets/9d7d9206-1ee3-4f8f-a29d-8b9dd09b9913
+[https://github.com/user-attachments/assets/9d7d9206-1ee3-4f8f-a29d-8b9dd09b9913](https://github.com/user-attachments/assets/9d7d9206-1ee3-4f8f-a29d-8b9dd09b9913)
 
 ## Preview before deploy
 
@@ -68,6 +70,7 @@ nuxthub preview
 ```
 
 Current limitations:
+
 - The `--remote` flag is not supported
 - `hubAI()` will ask you connect within the terminal with wrangler
 - `hubBrowser()` is not supported as not supported by `wrangler pages dev`
