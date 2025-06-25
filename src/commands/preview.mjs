@@ -19,6 +19,11 @@ export default defineCommand({
       required: false,
       default: '.'
     },
+    ip: {
+      type: 'string',
+      description: 'The IP address to bind the preview server to.',
+      required: false,
+    },
     'log-level': {
       type: 'string',
       description: 'The log level to use.',
@@ -85,6 +90,9 @@ export default defineCommand({
     const wranglerArgs = []
     if (args['log-level']) {
       wranglerArgs.push(`--log-level=${args['log-level']}`)
+    }
+    if (args.ip) {
+      wranglerArgs.push(`--ip=${args.ip}`)
     }
     if (nitroConfig.preset === 'cloudflare-pages') {
       consola.info(`Starting \`wrangler pages dev .\` command...`)
