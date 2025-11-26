@@ -24,6 +24,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const pkg = loadJsonFileSync(resolve(__dirname, '../package.json'))
 updateNotifier({ pkg }).notify({ isGlobal: true })
 
+consola.warn('NuxtHub Admin and CLI will be sunset on `December 31st, 2025`. Learn more at `https://hub.nuxt.com/changelog/self-hosting-first`.')
+
 const main = defineCommand({
   meta: {
     name: 'nuxthub',
